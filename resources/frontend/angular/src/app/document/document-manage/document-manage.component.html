@@ -1,0 +1,6 @@
+<app-document-manage-presentation [loading]="loading$ | async" (onSaveDocument)="saveDocument($event)">
+</app-document-manage-presentation>
+
+<div class="loading-shade" *ngIf="isLoading">
+    <mat-spinner></mat-spinner>
+  </div>

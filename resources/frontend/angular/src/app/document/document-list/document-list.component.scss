@@ -1,0 +1,47 @@
+.file {
+  height: 45px;
+  width: 100%;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  background: #f0f3fb;
+  font-size: 1rem;
+  overflow: hidden;
+}
+
+.filename {
+  width: 200px;
+  align-items: center;
+  vertical-align: middle;
+}
+
+.iconsvg {
+  height: 20px;
+  width: 20px;
+  margin: 0px 10px 0 10px;
+}
+
+.tripleicon {
+  position: relative;
+  right: 0;
+}
+
+.new-create-folder-btn {
+  position: fixed;
+  bottom: 80px;
+  right: 15px;
+  font-size: 1.5rem;
+  height: 50px;
+  width: 50px;
+  display: flex;
+  justify-content: center;
+  vertical-align: middle;
+  background-color: #495584;
+  color: #f0f3fb;
+  border-radius: 15px;
+}
+
+.plus-icon {
+  margin: auto;
+}

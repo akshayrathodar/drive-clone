@@ -1,0 +1,77 @@
+<section class="content">
+    <div class="content-block">
+        <div class="block-header">
+            <div class="breadcrumb-main">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="breadcrumb-title">
+                            <h2>{{'COMPANY_PROFILE' | translate}}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
+                <div class="card">
+                    <div class="body">
+                        <form [formGroup]="companyProfileForm" (ngSubmit)="saveCompanyProfile()">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="col-md-12">
+                                        <label class="form-label">{{'TITLE' | translate}}</label>
+                                        <input formControlName="title" class="form-control w-100" type="text">
+                                    </div>
+                                    <div class="col-md-12">
+                                        <div class="col-md-8">
+                                            <label for="">{{'LOGO' | translate}}</label>
+                                            <mat-card class="cus-mat-card">
+                                                <input hidden (change)="onFileSelect($event)" #fileInput name="logo"
+                                                    type="file" name="Profile Photo" fxFlex="30">
+                                                <img *ngIf="imgSrc" class="full-width company-logo" [src]="imgSrc" />
+                                                <img *ngIf="!imgSrc" class="full-width company-logo"
+                                                    src="assets/images/logo.png" />
+                                                <mat-card-actions>
+                                                    <button type="button" class="btn btn-success btn-sm mb-2"
+                                                        (click)="fileInput.click()">
+                                                        <i class="far fa-image"></i> {{'CHANGE_LOGO' |
+                                                        translate}}</button>
+                                                </mat-card-actions>
+                                            </mat-card>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="">{{'BANNER_IMAGE' | translate}}</label>
+                                    <mat-card class="cus-mat-card">
+                                        <input hidden (change)="onBannerChange($event)" #fileInput1 name="logo"
+                                            type="file" name="Profile Photo" fxFlex="30">
+                                        <img *ngIf="bannerSrc" class="full-width company-logo" [src]="bannerSrc" />
+                                        <img *ngIf="!bannerSrc" class="full-width company-logo"
+                                            src="assets/images/login-image.png" />
+                                        <mat-card-actions>
+                                            <button type="button" class="btn btn-success btn-sm mb-2"
+                                                (click)="fileInput1.click()">
+                                                <i class="far fa-image"></i> {{'CHANGE_BANNER' |
+                                                translate}}</button>
+                                        </mat-card-actions>
+                                    </mat-card>
+                                </div>
+                                <div class="m-t-10 col-md-12">
+                                    <button type="submit" class="btn btn-success btn-sm m-r-10" cdkFocusInitial><i
+                                            class="fas fa-save"></i>
+                                        {{'SAVE' | translate}}</button>
+                                    <button type="button" class="btn btn-danger btn-sm" [routerLink]="['/dashboard']"><i
+                                            class="fas fa-times-circle"></i> {{'CANCEL' | translate}}</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- <div class="loading-shade" *ngIf="isLoading">
+    <mat-spinner *ngIf="isLoading"></mat-spinner>
+</div> -->

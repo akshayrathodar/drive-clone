@@ -1,0 +1,261 @@
+<section class="content">
+  <div class="content-block">
+    <div class="block-header">
+      <div class="breadcrumb-main">
+        <div class="row">
+          <div class="col-6">
+            <div class="breadcrumb-title">
+              <h2>{{'ALL_DOCUMENTS' | translate}}</h2>
+            </div>
+          </div>
+          <div class="col-6">
+            <ul class="breadcrumb-list">
+              <li class="breadcrumb-item bcrumb-1">
+                <a *hasClaim="'ALL_DOCUMENTS_CREATE_DOCUMENT'" [routerLink]="['/documents/add']"
+                  class="btn btn-outline-success btn-sm">
+                  <app-feather-icons [icon]="'Plus'" [class]="'btn-success'"></app-feather-icons>
+                  <span class="d-none d-sm-inline"> {{'ADD_DOCUMENT' | translate}}</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
+        <div class="card">
+          <div class="body">
+            <div class="row margin-2">
+              <div class="col-md-3">
+                <label class="form-label">{{'SEARCH_DOCUMENT_BY_NAME_OR_DESCRIPTION' | translate}}</label>
+                <input class="form-control" placeholder="{{'SEARCH_DOCUMENT_BY_NAME_OR_DESCRIPTION' | translate}}"
+                  type="text" #input>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">{{'SEARCH_DOCUMENT_BY_META_TAGS' | translate}}</label>
+                <input class="form-control" placeholder="{{'SEARCH_DOCUMENT_BY_META_TAGS' | translate}}" #metatag>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">{{'SELECT_CATEGORY' | translate}}</label>
+                <mat-select class="form-select" placeholder="{{'SELECT_CATEGORY' | translate}}"
+                  (selectionChange)="onCategoryChange($event)">
+                  <mat-option [value]="">-- {{'NONE' | translate}} --</mat-option>
+                  <mat-option *ngFor="let category of allCategories" [value]="category.id">
+                    <div class="country-item" [ngStyle]="{'margin-left.px': category.deafLevel* 20}">
+                      <div *ngIf="!category.parentId">
+                        <b> {{category.name}}</b>
+                      </div>
+                      <div *ngIf="category.parentId">
+                        {{category.name}}
+                      </div>
+                    </div>
+                  </mat-option>
+                </mat-select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">{{'CREATED_DATE' | translate}}</label>
+                <input [max]="max" class="form-control" placeholder="{{'CREATED_DATE' | translate}}"
+                  [formControl]="createdDate" [owlDateTimeTrigger]="date1" [owlDateTime]="date1">
+                <owl-date-time #date1 [pickerType]="'calendar'"></owl-date-time>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-sm-4 m-2" *ngIf="selection.hasValue()">
+                <button mat-raised-button color="primary" *hasClaim="'ALL_DOCUMENTS_SHARE_DOCUMENT'"
+                  (click)="onSharedSelectDocument()">
+                  <mat-icon>share</mat-icon>
+                  {{'SHARE' | translate}}
+                </button>
+              </div>
+            </div>
+            <!-- <div class="row">
+              <div class="col">
+                <div class="table-responsive">
+                  <table mat-table [dataSource]="dataSource" class="w-100" matSort matSortActive="createdDate"
+                    matSortDirection="desc" matSortDisableClear>
+                    <ng-container matColumnDef="select">
+                      <th style="width:100px;" mat-header-cell *matHeaderCellDef>
+                        <mat-checkbox (change)="$event ? masterToggle() : null" color="primary"
+                          [checked]="selection.hasValue() && isAllSelected()"
+                          [indeterminate]="selection.hasValue() && !isAllSelected()">
+                        </mat-checkbox>
+                      </th>
+                      <td mat-cell *matCellDef="let row">
+                        <mat-checkbox (click)="$event.stopPropagation()" color="primary"
+                          (change)="$event ? selection.toggle(row) : null" [checked]="selection.isSelected(row)">
+                        </mat-checkbox>
+                      </td>
+                    </ng-container>
+                    <ng-container matColumnDef="action">
+                      <th mat-header-cell *matHeaderCellDef>{{'ACTION' | translate}} </th>
+                      <td mat-cell *matCellDef="let document">
+                        <button mat-icon-button [matMenuTriggerFor]="menu" aria-label="Action">
+                          <mat-icon>more_vert</mat-icon>
+                        </button>
+                        <mat-menu #menu="matMenu">
+                          <button class="btn btn-light btn-sm" mat-menu-item (click)="onDocumentView(document)"
+                            type="button">
+                            <mat-icon>visibility</mat-icon>
+                            {{'VIEW' | translate}}
+                          </button>
+                          <button *hasClaim="'ALL_DOCUMENTS_EDIT_DOCUMENT'" mat-menu-item class="btn btn-light btn-sm"
+                            (click)="editDocument(document)">
+                            <mat-icon>edit</mat-icon>
+                            {{'EDIT' | translate}}
+                          </button>
+                          <button *hasClaim="'ALL_DOCUMENTS_SHARE_DOCUMENT'" mat-menu-item class="btn btn-light btn-sm"
+                            (click)="manageDocumentPermission(document)" type="button">
+                            <mat-icon>share</mat-icon>
+                            {{'SHARE'| translate}}
+                          </button>
+
+                          <button class="btn btn-light btn-sm" *hasClaim="'ALL_DOCUMENTS_DOWNLOAD_DOCUMENT'"
+                            mat-menu-item (click)="downloadDocument(document)" type="button">
+                            <mat-icon>download</mat-icon>
+                            {{'DOWNLOAD' | translate}}
+                          </button>
+                          <button mat-menu-item class="btn btn-light btn-sm" (click)="uploadNewVersion(document)"
+                            type="button">
+                            <mat-icon>upload</mat-icon>
+                            {{'UPLOAD_NEW_VERSION_FILE' | translate}}
+                          </button>
+                          <button mat-menu-item (click)="onVersionHistoryClick(document)">
+                            <mat-icon> history</mat-icon>
+                            Version History
+                          </button>
+                          <button class="btn btn-light btn-sm" mat-menu-item (click)="addComment(document)"
+                            type="button">
+                            <mat-icon> chat</mat-icon>
+                            {{'COMMENT' | translate}}
+                          </button>
+                          <button class="btn btn-light btn-sm" mat-menu-item (click)="addReminder(document)"
+                            type="button">
+                            <mat-icon>notifications</mat-icon>
+                            {{'ADD_REMINDER' | translate}}
+                          </button>
+                          <button class="btn btn-light btn-sm" mat-menu-item (click)="sendEmail(document)"
+                            type="button">
+                            <mat-icon>forward_to_inbox</mat-icon>
+                            {{'SEND_EMAIL' | translate}}
+                          </button>
+                          <button *hasClaim="'ALL_DOCUMENTS_DELETE_DOCUMENT'" mat-menu-item class="btn btn-light btn-sm"
+                            (click)="deleteDocument(document)" type="button">
+                            <mat-icon>delete</mat-icon>
+                            {{'DELETE' | translate}}
+                          </button>
+                        </mat-menu>
+                      </td>
+                    </ng-container>
+                    <ng-container matColumnDef="name">
+                      <th mat-header-cell *matHeaderCellDef mat-sort-header> {{'NAME' | translate}} </th>
+                      <td mat-cell *matCellDef="let document">
+                        <a class="doc-link" (click)="onDocumentView(document)">{{document.name}}</a>
+                      </td>
+                    </ng-container>
+                    <ng-container matColumnDef="categoryName">
+                      <th mat-header-cell *matHeaderCellDef mat-sort-header>{{'DOCUMENT_CATEGORY' | translate}}</th>
+                      <td mat-cell *matCellDef="let document"> {{document.categoryName}} </td>
+                    </ng-container>
+                    <ng-container matColumnDef="createdDate">
+                      <th mat-header-cell *matHeaderCellDef mat-sort-header> {{'CREATED_DATE' | translate}} </th>
+                      <td mat-cell *matCellDef="let document"> {{document?.createdDate | utcToLocalTime:'shortDate' }}
+                      </td>
+                    </ng-container>
+                    <ng-container matColumnDef="createdBy">
+                      <th mat-header-cell *matHeaderCellDef mat-sort-header> {{'CREATED_BY' | translate}} </th>
+                      <td mat-cell *matCellDef="let document"> {{document.createdByName}} </td>
+                    </ng-container>
+                    <tr mat-header-row *matHeaderRowDef="displayedColumns;sticky: true"></tr>
+                    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+                  </table>
+                  <ng-container *ngIf="dataSource.count === 0">
+                    <div class="col-sm-12 m-t-15">
+                      <strong>{{'NO_DATA_FOUND' | translate}}</strong>
+                    </div>
+                  </ng-container>
+                  <mat-paginator [length]="documentResource.totalCount" [pageSize]="documentResource.pageSize"
+                    [pageSizeOptions]="[10, 20, 30]"></mat-paginator>
+                </div>
+              </div>
+            </div> -->
+
+            <div class="row">
+              <div *ngFor="let document of data" class="col-lg-3 col-md-3 col-sm-6">
+                <div class="file">
+                  <i *ngIf="document.type !== 'folder'" class="fa fa-file iconsvg"></i>
+                  <i *ngIf="document.type === 'folder'" class="fa fa-folder iconsvg"></i>
+                  <span class="filename">{{ document.name }}</span>
+                  <div class="tripleicon" *ngIf="document.type != 'folder'">
+                    <button mat-icon-button [matMenuTriggerFor]="menu" aria-label="Action">
+                      <mat-icon>more_vert</mat-icon>
+                    </button>
+                  </div>
+                  <mat-menu #menu="matMenu">
+                    <button class="btn btn-light btn-sm" mat-menu-item (click)="onDocumentView(document)" type="button">
+                      <mat-icon>visibility</mat-icon>
+                      {{'VIEW' | translate}}
+                    </button>
+                    <button *hasClaim="'ALL_DOCUMENTS_EDIT_DOCUMENT'" mat-menu-item class="btn btn-light btn-sm"
+                      (click)="editDocument(document)">
+                      <mat-icon>edit</mat-icon>
+                      {{'EDIT' | translate}}
+                    </button>
+                    <button *hasClaim="'ALL_DOCUMENTS_SHARE_DOCUMENT'" mat-menu-item class="btn btn-light btn-sm"
+                      (click)="manageDocumentPermission(document)" type="button">
+                      <mat-icon>share</mat-icon>
+                      {{'SHARE'| translate}}
+                    </button>
+
+                    <button class="btn btn-light btn-sm" *hasClaim="'ALL_DOCUMENTS_DOWNLOAD_DOCUMENT'" mat-menu-item
+                      (click)="downloadDocument(document)" type="button">
+                      <mat-icon>download</mat-icon>
+                      {{'DOWNLOAD' | translate}}
+                    </button>
+                    <button mat-menu-item class="btn btn-light btn-sm" (click)="uploadNewVersion(document)"
+                      type="button">
+                      <mat-icon>upload</mat-icon>
+                      {{'UPLOAD_NEW_VERSION_FILE' | translate}}
+                    </button>
+                    <button mat-menu-item (click)="onVersionHistoryClick(document)">
+                      <mat-icon> history</mat-icon>
+                      Version History
+                    </button>
+                    <button class="btn btn-light btn-sm" mat-menu-item (click)="addComment(document)" type="button">
+                      <mat-icon> chat</mat-icon>
+                      {{'COMMENT' | translate}}
+                    </button>
+                    <button class="btn btn-light btn-sm" mat-menu-item (click)="addReminder(document)" type="button">
+                      <mat-icon>notifications</mat-icon>
+                      {{'ADD_REMINDER' | translate}}
+                    </button>
+                    <button class="btn btn-light btn-sm" mat-menu-item (click)="sendEmail(document)" type="button">
+                      <mat-icon>forward_to_inbox</mat-icon>
+                      {{'SEND_EMAIL' | translate}}
+                    </button>
+                    <button *hasClaim="'ALL_DOCUMENTS_DELETE_DOCUMENT'" mat-menu-item class="btn btn-light btn-sm"
+                      (click)="deleteDocument(document)" type="button">
+                      <mat-icon>delete</mat-icon>
+                      {{'DELETE' | translate}}
+                    </button>
+                  </mat-menu>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<input style="display: none;" type="file" #folderupld webkitdirectory multiple (change)="uploadFolder($event)" />
+<!-- <div class="new-upload-file-btn" (click)="file.click()">
+  <i class="far fa-file plus-icon"></i>
+</div> -->
+<div class="new-create-folder-btn" (click)="folderupld.click()">
+  <i class="fas fa-folder-plus plus-icon"></i>
+</div>
+<div class="loading-shade" *ngIf="dataSource.loading$ | async">
+  <mat-spinner></mat-spinner>
+</div>
