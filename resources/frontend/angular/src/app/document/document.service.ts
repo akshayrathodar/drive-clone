@@ -79,7 +79,7 @@ export class DocumentService {
     resource: DocumentResource,
     folderID?: any
   ): Observable<HttpResponse<DocumentInfo[]> | CommonError> {
-    const url = folderID ? `documents?id=` + folderID : 'documents';
+    const url = 'documents';
     const customParams = new HttpParams()
       .set('fields', resource.fields)
       .set('orderBy', resource.orderBy)
@@ -93,7 +93,7 @@ export class DocumentService {
       .set('categoryId', resource.categoryId)
       .set('name', resource.name)
       .set('metaTags', resource.metaTags)
-      .set('id', resource.id.toString());
+      .set('id', folderID ? folderID : resource.id.toString());
 
     return this.httpClient
       .get<DocumentInfo[]>(url, {

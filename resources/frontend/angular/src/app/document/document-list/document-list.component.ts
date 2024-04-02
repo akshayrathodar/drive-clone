@@ -42,7 +42,7 @@ import { SendEmailComponent } from '../send-email/send-email.component';
 import { DocumentDataSource } from './document-datasource';
 import { FormControl } from '@angular/forms';
 import { DatePipe } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 // import { ManageFolderComponent } from 'src/app/folder/manage-folder/manage-folder.component';
 
 @Component({
@@ -91,9 +91,11 @@ export class DocumentListComponent
     private commonService: CommonService,
     private toastrService: ToastrService,
     private datePipe: DatePipe,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private router: Router
   ) {
     super();
+    this.router.routeReuseStrategy.shouldReuseRoute = () => false;
     this.documentResource = new DocumentResource();
     this.documentResource.pageSize = 10;
     this.documentResource.orderBy = 'createdDate desc';
@@ -463,6 +465,12 @@ export class DocumentListComponent
         // this.refereshDirectory();
       }
     })
+  }
+
+  onElementClick(element) {
+    if (element.type == "folder") {
+      this.router.navigate(['/documents/folder/' + element.id]);
+    }
   }
 
 }

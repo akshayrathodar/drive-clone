@@ -182,7 +182,7 @@
 
             <div class="row">
               <div *ngFor="let document of data" class="col-lg-3 col-md-3 col-sm-6">
-                <div class="file">
+                <div class="file" (click)="onElementClick(document)">
                   <i *ngIf="document.type !== 'folder'" class="fa fa-file iconsvg"></i>
                   <i *ngIf="document.type === 'folder'" class="fa fa-folder iconsvg"></i>
                   <span class="filename">{{ document.name }}</span>
