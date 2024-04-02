@@ -21,7 +21,7 @@ class Documents extends Model
 
     protected $fillable = [
         'categoryId', 'name', 'description', 'url','createdBy',
-        'modifiedBy', 'isDeleted'
+        'modifiedBy', 'isDeleted','folder_id','type'
     ];
 
     public function categories()

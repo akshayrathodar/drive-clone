@@ -10,6 +10,7 @@ use App\Models\DocumentVersions;
 use App\Repositories\Contracts\DocumentMetaDataRepositoryInterface;
 use App\Repositories\Contracts\DocumentTokenRepositoryInterface;
 use App\Repositories\Contracts\UserNotificationRepositoryInterface;
+use GuzzleHttp\Psr7\Response;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Ramsey\Uuid\Uuid;
@@ -132,7 +133,12 @@ class DocumentController extends Controller
                 ]);
 
                 $request['folder_id'] = $createFolder->id;
-                // $request['folder_id'] = "5";
+                $request['categoryId'] = "ecf8300c-f027-4cfa-98ab-bcb6c705f476";
+                $request['categoryName'] = "";
+                $request['description'] = "";
+                $request['documentMetaDatas'] = "[]";
+                $request['documentRolePermissions'] = "[]";
+                $request['documentUserPermissions'] = "[]";
 
                 $pathArray = [];
 
@@ -146,12 +152,17 @@ class DocumentController extends Controller
                     }
                 }
 
+
                 $newPath = implode("/",array_reverse(allPath($request['folder_id'],$pathArray)));
 
                 for($i=0; $i < count($request->file()) ; $i++) {
 
+                    // $path = $request->input('path_'.$i);
+                    $pathArray = explode("/",$request->input('path_'.$i));
+                    $request['name'] = end($pathArray);
+
                     $path = $newPath.'/'.$request->input('path_'.$i);
-                    Gdrive::put($request->input('path_'.$i), $request->file('files_'.$i));
+                    Gdrive::put($path, $request->file('files_'.$i));
 
                     $this->documentRepository->saveDocument($request, $path);
                 }
@@ -163,16 +174,29 @@ class DocumentController extends Controller
                 ]);
 
                 $request['folder_id'] = $createFolder->id;
+                $request['categoryId'] = "ecf8300c-f027-4cfa-98ab-bcb6c705f476";
+                $request['categoryName'] = "";
+                $request['description'] = "";
+                $request['documentMetaDatas'] = "[]";
+                $request['documentRolePermissions'] = "[]";
+                $request['documentUserPermissions'] = "[]";
 
                 Gdrive::makeDir($request->name);
+
 
                 for($i=0; $i < count($request->file()) ; $i++) {
 
                     $path = $request->input('path_'.$i);
+                    $pathArray = explode("/",$request->input('path_'.$i));
+
+                    $request['name'] = end($pathArray);
+                    // return end($pathArray);
                     Gdrive::put($request->input('path_'.$i), $request->file('files_'.$i));
 
-                    $this->documentRepository->saveDocument($request, $path);
+                    $this->documentRepository->saveDocument($request, $request->input('path_'.$i));
                 }
+
+                return Response()->json(["success"=>"Document Upload SuccessFully"],200);
             }
 
 
