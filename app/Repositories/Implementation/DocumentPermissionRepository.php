@@ -354,8 +354,8 @@ class DocumentPermissionRepository extends BaseRepository implements DocumentPer
                 });
             });
 
-
         $count = $query->count();
+
         return $count > 0 ? true : false;
     }
 }

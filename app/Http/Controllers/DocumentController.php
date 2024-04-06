@@ -69,7 +69,9 @@ class DocumentController extends Controller
 
         $fileupload = $file->url;
 
-        $data = Gdrive::get($fileupload);
+        $getallData = collect(Gdrive::all("/", true))->where('extra_metadata.id', '=', $fileupload)->first();
+
+        $data = Gdrive::get($getallData['path']);
         return response($data->file, 200)
             ->header('Content-Type', $data->ext)
             ->header('Content-disposition', 'attachment; filename="'.$data->filename.'"');
@@ -161,8 +163,12 @@ class DocumentController extends Controller
                     $pathArray = explode("/",$request->input('path_'.$i));
                     $request['name'] = end($pathArray);
 
-                    $path = $newPath.'/'.$request->input('path_'.$i);
-                    Gdrive::put($path, $request->file('files_'.$i));
+                    $filepath = $newPath.'/'.$request->input('path_'.$i);
+                    Gdrive::put($filepath, $request->file('files_'.$i));
+
+                    $newAllFiles = collect(Gdrive::all("/", true))->where('extraMetadata.display_path', '=', $filepath)->first();
+
+                    $path = $newAllFiles['extraMetadata']['id'];
 
                     $this->documentRepository->saveDocument($request, $path);
                 }
@@ -190,10 +196,16 @@ class DocumentController extends Controller
                     $pathArray = explode("/",$request->input('path_'.$i));
 
                     $request['name'] = end($pathArray);
-                    // return end($pathArray);
-                    Gdrive::put($request->input('path_'.$i), $request->file('files_'.$i));
 
-                    $this->documentRepository->saveDocument($request, $request->input('path_'.$i));
+                    $filepath = $request->input('path_'.$i);
+
+                    Gdrive::put($filepath, $request->file('files_'.$i));
+
+                    $newAllFiles = collect(Gdrive::all("/", true))->where('extraMetadata.display_path', '=', $filepath)->first();
+
+                    $path = $newAllFiles['extraMetadata']['id'];
+
+                    $this->documentRepository->saveDocument($request, $path);
                 }
 
                 return Response()->json(["success"=>"Document Upload SuccessFully"],200);
@@ -201,8 +213,12 @@ class DocumentController extends Controller
 
 
         }else{
-            $path = Uuid::uuid4().$request->name;
-            Gdrive::put($path, $request->file('uploadFile'));
+            $filepath = Uuid::uuid4().$request->name;
+            Gdrive::put($filepath, $request->file('uploadFile'));
+
+            $newAllFiles = collect(Gdrive::all("/", true))->where('extraMetadata.name', '=', $filepath)->first();
+
+            $path = $newAllFiles['extraMetadata']['id'];
             return $this->documentRepository->saveDocument($request, $path);
         }
 
