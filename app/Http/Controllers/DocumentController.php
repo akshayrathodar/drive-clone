@@ -129,6 +129,15 @@ class DocumentController extends Controller
 
             if (isset($request->id)) {
 
+                $allFolder = DocumentFolder::where('parent_id',$request->id)->get();
+
+                foreach ($allFolder as $key => $value) {
+                    if ($value->name == $request->name) {
+                        return Response()->json(["error"=>"Document Folder Already Exist"],500);
+                    }
+                }
+
+
                 $createFolder = DocumentFolder::create([
                     'name' => $request->name,
                     'parent_id' => $request->id
@@ -175,6 +184,14 @@ class DocumentController extends Controller
 
             }else{
 
+                $allFolder = DocumentFolder::where('parent_id',null)->get();
+
+                foreach ($allFolder as $key => $value) {
+                    if ($value->name == $request->name) {
+                        return Response()->json(["error"=>"Document Folder Already Exist"],500);
+                    }
+                }
+
                 $createFolder = DocumentFolder::create([
                     'name' => $request->name,
                 ]);
@@ -188,7 +205,6 @@ class DocumentController extends Controller
                 $request['documentUserPermissions'] = "[]";
 
                 Gdrive::makeDir($request->name);
-
 
                 for($i=0; $i < count($request->file()) ; $i++) {
 
@@ -307,6 +323,52 @@ class DocumentController extends Controller
             return $pathArray;
         }
 
-
     }
+
+    public function renameFolder(Request $request, $id){
+
+        $validator = Validator::make($request->all(), [
+            'name' => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->messages(), 403);
+        }
+
+        $folders = DocumentFolder::find($id)->update([
+            'name' => $request->name
+        ]);
+
+        return response()->json(['success'=>'Folder Rename Successfully'], 200);
+    }
+
+    public function deleteFolder(Request $request,$id){
+        try {
+            DocumentFolder::find($id)->delete();
+            DocumentFolder::where('parent_id',$id)->delete();
+            $documents = Documents::where('folder_id',$id)->get();
+
+            foreach ($documents as $key => $value) {
+                $getallData = collect(Gdrive::all("/", true))->where('extra_metadata.id', '=', $value->url)->first();
+                if ($getallData) {
+                    $filePath = explode('/',$getallData['path']);
+                    if (count($filePath) > 1) {
+                        Gdrive::deleteDir(current($filePath));
+                    }else{
+                        if (isset($getallData['path'])) {
+                            Gdrive::delete($getallData['path']);
+                        }
+                    }
+                }else{
+                    Documents::where('folder_id',$id)->delete();
+                }
+            }
+
+            return response()->json(['success'=>'Folder Deleted Successfully'], 200);
+
+        } catch (\Exception $e) {
+            return response()->json($e, 403);
+        }
+    }
+
 }

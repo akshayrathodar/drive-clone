@@ -48,6 +48,8 @@ Route::post('/companyProfile', [CompanyProfileController::class, 'updateCompanyP
 Route::middleware(['auth'])->group(function () {
 
     Route::post('document/path', [DocumentController::class, 'folderPath']);
+    Route::post('document/rename-folder/{id}', [DocumentController::class, 'renameFolder']);
+    Route::post('document/folder/delete/{id}', [DocumentController::class, 'deleteFolder']);
     Route::post('auth/refresh', [AuthController::class, 'refresh']);
 
     Route::group(['middleware' => ['hasToken:USER_VIEW_USERS']], function () {
@@ -118,7 +120,7 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/actions/{id}', [ActionsController::class, 'destroy']);
 
     Route::get('/role-dropdown', [RoleController::class, 'dropdown']);
-    
+
     Route::group(['middleware' => ['hasToken:ROLE_VIEW_ROLES']], function () {
         Route::get('/role', [RoleController::class, 'index']);
     });
