@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\DriveFOlderUpload;
 use App\Models\DocumentFolder;
 use Illuminate\Http\Request;
 use App\Repositories\Contracts\DocumentRepositoryInterface;
@@ -11,10 +12,11 @@ use App\Repositories\Contracts\DocumentMetaDataRepositoryInterface;
 use App\Repositories\Contracts\DocumentTokenRepositoryInterface;
 use App\Repositories\Contracts\UserNotificationRepositoryInterface;
 use GuzzleHttp\Psr7\Response;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Ramsey\Uuid\Uuid;
-use Yaza\LaravelGoogleDriveStorage\Gdrive;
+use Google\Service\Drive\DriveFile;
 
 class DocumentController extends Controller
 {
@@ -23,6 +25,9 @@ class DocumentController extends Controller
     private $documenTokenRepository;
     private $userNotificationRepository;
     protected $queryString;
+    protected $client;
+    protected $folder_id;
+    protected $service;
 
     public function __construct(
         DocumentRepositoryInterface $documentRepository,
@@ -34,6 +39,15 @@ class DocumentController extends Controller
         $this->documentMetaDataRepository = $documentMetaDataRepository;
         $this->userNotificationRepository = $userNotificationRepository;
         $this->documenTokenRepository = $documenTokenRepository;
+
+        $this->client = new \Google_Client();
+        $this->client->setClientId(env('GOOGLE_DRIVE_CLIENT_ID'));
+        $this->client->setClientSecret(env('GOOGLE_DRIVE_CLIENT_SECRET'));
+        $this->client->refreshToken(env('GOOGLE_DRIVE_REFRESH_TOKEN'));
+        $this->client->setAccessType('offline');
+        $this->client->setApprovalPrompt("force");
+
+        $this->service = new \Google\Service\Drive($this->client);
     }
 
     public function getDocuments(Request $request)
@@ -67,28 +81,13 @@ class DocumentController extends Controller
             $file = Documents::findOrFail($id);
         }
 
-        $fileupload = $file->url;
+        $fileId = $file->url;
 
-        $getallData = collect(Gdrive::all("/", true))->where('extra_metadata.id', '=', $fileupload)->first();
+        $response = $this->service->files->get($fileId, array(
+            'alt' => 'media'));
+        $content = $response->getBody()->getContents();
+        return $content;
 
-        $data = Gdrive::get($getallData['path']);
-        return response($data->file, 200)
-            ->header('Content-Type', $data->ext)
-            ->header('Content-disposition', 'attachment; filename="'.$data->filename.'"');
-
-        // if (Storage::disk('local')->exists($fileupload)) {
-        //     $file_contents = Storage::disk('local')->get($fileupload);
-        //     $fileType = Storage::mimeType($fileupload);
-
-        //     $fileExtension = explode('.', $file->url);
-        //     return response($file_contents)
-        //         ->header('Cache-Control', 'no-cache private')
-        //         ->header('Content-Description', 'File Transfer')
-        //         ->header('Content-Type', $fileType)
-        //         ->header('Content-length', strlen($file_contents))
-        //         ->header('Content-Disposition', 'attachment; filename=' . $file->name . '.' . $fileExtension[1])
-        //         ->header('Content-Transfer-Encoding', 'binary');
-        // }
     }
 
     public function readTextDocument($id, $isVersion)
@@ -116,6 +115,7 @@ class DocumentController extends Controller
 
     public function saveDocument(Request $request)
     {
+
         $validator = Validator::make($request->all(), [
             'name'       => ['required'],
         ]);
@@ -126,64 +126,43 @@ class DocumentController extends Controller
 
         if (isset($request->type) && $request->type == "folder") {
 
+            $request['categoryId'] = "ecf8300c-f027-4cfa-98ab-bcb6c705f476";
+            $request['categoryName'] = "";
+            $request['description'] = "";
+            $request['documentMetaDatas'] = "[]";
+            $request['documentRolePermissions'] = "[]";
+            $request['documentUserPermissions'] = "[]";
+
+            $realPath = $request->path_0;
+            $filePath = explode("/",$realPath);
+            $request['name'] = end($filePath);
+
+            $i = 0;
+
+            function folderId($filePath,$folderId,$i){
+                $folder = DocumentFolder::where('parent_id',$folderId)->where('name',$filePath[$i])->first();
+                if ($folder) {
+                    if (strpos($filePath[$i + 1], '.')) {
+                        return $folder->id;
+                    }else {
+                        $i++;
+                        return folderId($filePath,$folder->id,$i);
+                    }
+                }else{
+                    $createFolder = DocumentFolder::create([
+                        'name' => $filePath[$i],
+                        'parent_id'=> $folderId,
+                    ]);
+                    if (strpos($filePath[$i + 1], '.')) {
+                        return $createFolder->id;
+                    } else {
+                        $i++;
+                        return folderId($filePath,$createFolder->id,$i);
+                    }
+                }
+            }
 
             if (isset($request->id)) {
-
-                $allFolder = DocumentFolder::where('parent_id',$request->id)->get();
-
-                foreach ($allFolder as $key => $value) {
-                    if ($value->name == $request->name) {
-                        return Response()->json(["error"=>"Document Folder Already Exist"],500);
-                    }
-                }
-
-
-                $createFolder = DocumentFolder::create([
-                    'name' => $request->name,
-                    'parent_id' => $request->id
-                ]);
-
-                $request['folder_id'] = $createFolder->id;
-                $request['categoryId'] = "ecf8300c-f027-4cfa-98ab-bcb6c705f476";
-                $request['categoryName'] = "";
-                $request['description'] = "";
-                $request['documentMetaDatas'] = "[]";
-                $request['documentRolePermissions'] = "[]";
-                $request['documentUserPermissions'] = "[]";
-
-                $pathArray = [];
-
-                function allPath($i,$pathArray){
-                    $folders = DocumentFolder::find($i);
-                    array_push($pathArray,$folders->name);
-                    if ($folders->parent_id) {
-                        return allPath($folders->parent_id,$pathArray);
-                    }else{
-                        return $pathArray;
-                    }
-                }
-
-
-                $newPath = implode("/",array_reverse(allPath($request['folder_id'],$pathArray)));
-
-                for($i=0; $i < count($request->file()) ; $i++) {
-
-                    // $path = $request->input('path_'.$i);
-                    $pathArray = explode("/",$request->input('path_'.$i));
-                    $request['name'] = end($pathArray);
-
-                    $filepath = $newPath.'/'.$request->input('path_'.$i);
-                    Gdrive::put($filepath, $request->file('files_'.$i));
-
-                    $newAllFiles = collect(Gdrive::all("/", true))->where('extraMetadata.display_path', '=', $filepath)->first();
-
-                    $path = $newAllFiles['extraMetadata']['id'];
-
-                    $this->documentRepository->saveDocument($request, $path);
-                }
-
-            }else{
-
                 $allFolder = DocumentFolder::where('parent_id',null)->get();
 
                 foreach ($allFolder as $key => $value) {
@@ -192,52 +171,51 @@ class DocumentController extends Controller
                     }
                 }
 
-                $createFolder = DocumentFolder::create([
-                    'name' => $request->name,
-                ]);
+                $request['folder_id'] = folderId($filePath,$request->id,$i);
 
-                $request['folder_id'] = $createFolder->id;
-                $request['categoryId'] = "ecf8300c-f027-4cfa-98ab-bcb6c705f476";
-                $request['categoryName'] = "";
-                $request['description'] = "";
-                $request['documentMetaDatas'] = "[]";
-                $request['documentRolePermissions'] = "[]";
-                $request['documentUserPermissions'] = "[]";
+            }else{
+                $allFolder = DocumentFolder::where('parent_id',null)->get();
 
-                Gdrive::makeDir($request->name);
-
-                for($i=0; $i < count($request->file()) ; $i++) {
-
-                    $path = $request->input('path_'.$i);
-                    $pathArray = explode("/",$request->input('path_'.$i));
-
-                    $request['name'] = end($pathArray);
-
-                    $filepath = $request->input('path_'.$i);
-
-                    Gdrive::put($filepath, $request->file('files_'.$i));
-
-                    $newAllFiles = collect(Gdrive::all("/", true))->where('extraMetadata.display_path', '=', $filepath)->first();
-
-                    $path = $newAllFiles['extraMetadata']['id'];
-
-                    $this->documentRepository->saveDocument($request, $path);
+                foreach ($allFolder as $key => $value) {
+                    if ($value->name == $request->name) {
+                        return Response()->json(["error"=>"Document Folder Already Exist"],500);
+                    }
                 }
 
-                return Response()->json(["success"=>"Document Upload SuccessFully"],200);
+                $request['folder_id'] = folderId($filePath,null,$i);
             }
 
 
+            array_pop($filePath);
+            $drivePath = implode("/",$filePath)."/".Uuid::uuid4().$request['name'];
+
+            $fileMetadata = new DriveFile(array('name' => $drivePath));
+            $content = file_get_contents($request->file('files_0'));
+            $file = $this->service->files->create($fileMetadata, array(
+                'data' => $content,
+                'mimeType' => $request->file('files_0')->getClientMimeType(),
+                'uploadType' => 'multipart',
+                'fields' => 'id'));
+
+            $path = $file->id;
+
+            return $this->documentRepository->saveDocument($request, $path);
+
         }else{
             $filepath = Uuid::uuid4().$request->name;
-            Gdrive::put($filepath, $request->file('uploadFile'));
 
-            $newAllFiles = collect(Gdrive::all("/", true))->where('extraMetadata.name', '=', $filepath)->first();
+            $fileMetadata = new DriveFile(array('name' => $filepath));
+            $content = file_get_contents($request->file('uploadFile'));
+            $file = $this->service->files->create($fileMetadata, array(
+                'data' => $content,
+                'mimeType' => $request->file('uploadFile')->getClientMimeType(),
+                'uploadType' => 'multipart',
+                'fields' => 'id'));
 
-            $path = $newAllFiles['extraMetadata']['id'];
+            $path = $file->id;
+
             return $this->documentRepository->saveDocument($request, $path);
         }
-
 
     }
 
@@ -256,7 +234,8 @@ class DocumentController extends Controller
     public function deleteDocument($id)
     {
         $data = Documents::find($id);
-        Gdrive::delete($data->url);
+
+        $this->service->files->delete($data->url, array('supportsAllDrives' => true));
 
         return response($this->documentRepository->delete($id), 204);
     }
@@ -285,17 +264,6 @@ class DocumentController extends Controller
         $this->userNotificationRepository->markAsReadByDocumentId($id);
         return response()->json($this->documentRepository->getDocumentbyId($id));
     }
-
-    // public function viewDocument($id){
-    //     $data = Documents::find($id);
-    //     $readStream = Gdrive::readStream($data->url);
-
-    //     return response()->stream(function () use ($readStream) {
-    //         fpassthru($readStream->file);
-    //     }, 200, [
-    //         'Content-Type' => $readStream->ext,
-    //     ]);
-    // }
 
     public function folderPath(Request $request){
 
@@ -349,21 +317,10 @@ class DocumentController extends Controller
             $documents = Documents::where('folder_id',$id)->get();
 
             foreach ($documents as $key => $value) {
-                $getallData = collect(Gdrive::all("/", true))->where('extra_metadata.id', '=', $value->url)->first();
-                if ($getallData) {
-                    $filePath = explode('/',$getallData['path']);
-                    if (count($filePath) > 1) {
-                        Gdrive::deleteDir(current($filePath));
-                    }else{
-                        if (isset($getallData['path'])) {
-                            Gdrive::delete($getallData['path']);
-                        }
-                    }
-                }else{
-                    Documents::where('folder_id',$id)->delete();
-                }
+                $this->service->files->delete($value->url, array('supportsAllDrives' => true));
             }
 
+            Documents::where('folder_id',$id)->delete();
             return response()->json(['success'=>'Folder Deleted Successfully'], 200);
 
         } catch (\Exception $e) {
