@@ -43,4 +43,9 @@ export class CategoryService {
     const url = `category/dropdown`;
     return this.httpClient.get<Category[]>(url);
   }
+
+  getBreadCrumbs(folderId?: any) {
+    const url = folderId ? 'document/path?id=' + folderId : `document/path`;
+    return this.httpClient.get<Category[]>(url);
+  }
 }

@@ -23,5 +23,6 @@ export interface DocumentInfo {
   documentRolePermissions?: DocumentRolePermission[];
   documentUserPermissions?: DocumentUserPermission[];
   fileData?: any;
+  folder_id?: any;
   isAssignUser?: any;
 }

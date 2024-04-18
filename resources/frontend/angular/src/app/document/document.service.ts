@@ -15,7 +15,7 @@ export class DocumentService {
   constructor(
     private httpClient: HttpClient,
     private commonHttpErrorService: CommonHttpErrorService
-  ) {}
+  ) { }
 
   updateDocument(
     document: DocumentInfo
@@ -56,6 +56,9 @@ export class DocumentService {
       JSON.stringify(document.documentUserPermissions ?? [])
     );
 
+    if (document.folder_id) {
+      formData.append('folder_id', document.folder_id);
+    }
     return this.httpClient
       .post<DocumentInfo>(url, formData)
       .pipe(catchError(this.commonHttpErrorService.handleError));
@@ -136,23 +139,9 @@ export class DocumentService {
 
   uploadFolder(payload): Observable<DocumentInfo | CommonError> {
     const url = 'document';
-    const customParams = new HttpParams()
-    const formData = new FormData();
-    const files = payload.files;
-    Object.keys(files).forEach((key) => {
-      formData.append("files_"+ key, files[key]);
-      formData.append("path_"+ key, files[key]['webkitRelativePath']);
-    })
-
-    if (payload?.id) {
-      formData.append('id', payload.id);
-    }
-
-    formData.append("type", payload.type);
-    formData.append("name", payload.foldername);
-
+  
     return this.httpClient
-      .post<DocumentInfo>(url, formData)
+      .post<DocumentInfo>(url, payload)
       .pipe(catchError(this.commonHttpErrorService.handleError));
   }
 }

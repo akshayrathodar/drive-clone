@@ -43,6 +43,7 @@ import { DocumentDataSource } from './document-datasource';
 import { FormControl } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
+import { P } from '@angular/cdk/keycodes';
 // import { ManageFolderComponent } from 'src/app/folder/manage-folder/manage-folder.component';
 
 @Component({
@@ -80,6 +81,8 @@ export class DocumentListComponent
 
   selection = new SelectionModel<DocumentInfo>(true, []);
   max = new Date();
+  breadcrumbs = [];
+
   constructor(
     private documentService: DocumentService,
     private commonDialogService: CommonDialogService,
@@ -100,7 +103,9 @@ export class DocumentListComponent
     this.documentResource.pageSize = 10;
     this.documentResource.orderBy = 'createdDate desc';
     this.route.params.subscribe((param: any) => {
-      this.currentId = param.id;
+      if (param.id) {
+        this.currentId = param.id;
+      }
     });
   }
 
@@ -111,7 +116,18 @@ export class DocumentListComponent
     });
     this.dataSource.loadDocuments(this.documentResource, this.currentId);
     this.getCategories();
+    this.getBreadCrumbs();
     this.getResourceParameter();
+  }
+
+  getBreadCrumbs() {
+    this.categoryService.getBreadCrumbs(this.currentId).subscribe((c) => {
+      if (!Array.isArray(c)) {
+        this.breadcrumbs = [c];
+      } else {
+        this.breadcrumbs = c;
+      }
+    });
   }
 
   ngAfterViewInit() {
@@ -389,7 +405,7 @@ export class DocumentListComponent
   }
 
   onDocumentView(document: DocumentInfo) {
-    const urls = document.url.split('.');
+    const urls = document.name.split('.');
     const extension = urls[1];
     const documentView: DocumentView = {
       documentId: document.id,
@@ -440,7 +456,7 @@ export class DocumentListComponent
   }
 
   uploadFolder(event) {
-    console.log(event);
+    debugger;
     if (event.target.files.length == 0) {
       console.log("No file selected!");
       return
@@ -449,28 +465,55 @@ export class DocumentListComponent
 
     let file: File = event.target.files;
     let foldername = file[0].webkitRelativePath.split("/")[0];
-    let payload = this.currentId ? {
-      files: file,
-      type: "folder",
-      foldername: foldername,
-      id: this.currentId
-    } : { 
-      files: file,
-      type: "folder",
-      foldername: foldername,
-    };
-    this.documentService.uploadFolder(payload).subscribe((data: any) => {
-      if (data?.success) {
-        this.toastrService.success(data?.success);
-        // this.refereshDirectory();
+    let path = [];
+    
+    Object.keys(file).forEach((key) => {
+      const payload = new FormData();
+      if (this.currentId) {
+        payload.append("id", this.currentId);
       }
+      payload.append("type", "folder");
+      payload.append("files", file[key]);
+      payload.append("path", file[key]['webkitRelativePath']);
+
+      this.documentService.uploadFolder(payload).subscribe((data: any) => {
+        if (data?.success) {
+          this.toastrService.success(data?.success);
+          this.dataSource.loadDocuments(this.documentResource, this.currentId);
+          // this.refereshDirectory();
+        }
+      })
+  
     })
+
   }
 
   onElementClick(element) {
     if (element.type == "folder") {
       this.router.navigate(['/documents/folder/' + element.id]);
     }
+  }
+
+  addDocument() {
+    if (this.currentId) {
+      this.router.navigate(['/documents/add/' + this.currentId]);
+    } else {
+      this.router.navigate(['/documents/add/']);
+    }
+  }
+
+  onCrumbClick(crumb: any) {
+    let selectedpath = crumb.path;
+    this.breadcrumbs = [];
+    if (selectedpath === 'home') {
+      this.router.navigate(['/documents/']);
+    } else {
+      this.router.navigate(['/documents/folder/' + crumb.path]);
+    }
+    // if (selectedcrumbindex != -1) {
+    //   this.driveService.setBreadCrumb(currentCrumb.filter((item, i) => !(i > selectedcrumbindex)));
+    //   this.breadcrumbs = currentCrumb.filter((item, i) => !(i > selectedcrumbindex));
+    // }
   }
 
 }

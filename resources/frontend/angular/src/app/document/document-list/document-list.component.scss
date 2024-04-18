@@ -13,6 +13,9 @@
 .filename {
   width: 200px;
   align-items: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
   vertical-align: middle;
 }
 
@@ -24,7 +27,7 @@
 
 .tripleicon {
   position: relative;
-  right: 0;
+  right: -10px;
 }
 
 .new-create-folder-btn {
@@ -44,4 +47,30 @@
 
 .plus-icon {
   margin: auto;
+}
+
+
+.breadcrumbsection {
+  margin: 20px 0;
+}
+
+.breadcrumb {
+  margin: auto;
+  background-color: white;
+  padding: 7px 15px;
+  border-radius: 10px;
+}
+
+.breadcrumbsection {}
+
+.breadcrumbsection .breadcrumb-item {
+  padding: 5px;
+  border-radius: 10px;
+  font-size: 1.1rem !important;
+}
+
+.breadcrumbsection .breadcrumb-item a {
+  font-size: 1.1rem !important;
+  padding: 8px;
+  border-radius: 10px;
 }

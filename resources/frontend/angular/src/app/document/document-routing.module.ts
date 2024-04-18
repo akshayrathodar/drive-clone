@@ -25,6 +25,12 @@ const routes: Routes = [
     canActivate: [AuthGuard],
   },
   {
+    path: 'add/:id',
+    component: DocumentManageComponent,
+    data: { claimType: 'ALL_DOCUMENTS_CREATE_DOCUMENT' },
+    canActivate: [AuthGuard],
+  },
+  {
     path: ':id',
     component: DocumentManageComponent,
     resolve: {

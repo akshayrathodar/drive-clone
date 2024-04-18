@@ -173,7 +173,7 @@ class DocumentController extends Controller
             $content = file_get_contents($request->file('files'));
             $file = $this->service->files->create($fileMetadata, array(
                 'data' => $content,
-                'mimeType' => $request->file('files_0')->getClientMimeType(),
+                'mimeType' => $request->file('files')->getClientMimeType(),
                 'uploadType' => 'multipart',
                 'fields' => 'id'));
 

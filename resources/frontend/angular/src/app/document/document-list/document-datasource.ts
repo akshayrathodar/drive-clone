@@ -12,6 +12,7 @@ export class DocumentDataSource implements DataSource<DocumentInfo> {
   public documentsSubject = new BehaviorSubject<DocumentInfo[]>([]);
   private responseHeaderSubject = new BehaviorSubject<ResponseHeader>(null);
   private loadingSubject = new BehaviorSubject<boolean>(false);
+  public breadcrumbSubject = new BehaviorSubject<any[]>([]);
 
   public loading$ = this.loadingSubject.asObservable();
   private _count = 0;
@@ -23,11 +24,19 @@ export class DocumentDataSource implements DataSource<DocumentInfo> {
   public responseHeaderSubject$ = this.responseHeaderSubject.asObservable();
 
   private _data: DocumentInfo[];
+  private _breadcrumb: any;
   public get data(): DocumentInfo[] {
     return this._data;
   }
   public set data(v: DocumentInfo[]) {
     this._data = v;
+  }
+
+  public get breadcrumb(): any[] {
+    return this._breadcrumb;
+  }
+  public set breadcrumb(v: any[]) {
+    this._breadcrumb = v;
   }
 
   constructor(private documentService: DocumentService) { }
@@ -38,7 +47,7 @@ export class DocumentDataSource implements DataSource<DocumentInfo> {
 
   disconnect(collectionViewer: CollectionViewer): void {
     this.documentsSubject.complete();
-    this.loadingSubject.complete();
+    this.breadcrumbSubject.complete();
   }
 
   loadDocuments(documentResource: DocumentResource, folderID?: any) {

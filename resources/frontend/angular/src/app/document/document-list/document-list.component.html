@@ -11,7 +11,7 @@
           <div class="col-6">
             <ul class="breadcrumb-list">
               <li class="breadcrumb-item bcrumb-1">
-                <a *hasClaim="'ALL_DOCUMENTS_CREATE_DOCUMENT'" [routerLink]="['/documents/add']"
+                <a *hasClaim="'ALL_DOCUMENTS_CREATE_DOCUMENT'" (click)="addDocument()"
                   class="btn btn-outline-success btn-sm">
                   <app-feather-icons [icon]="'Plus'" [class]="'btn-success'"></app-feather-icons>
                   <span class="d-none d-sm-inline"> {{'ADD_DOCUMENT' | translate}}</span>
@@ -23,43 +23,23 @@
       </div>
     </div>
     <div class="row">
+      <div class="row" class="col-xl-12 col-lg-12 col-md-12 col-sm-12 mb-2">
+        <section class="breadcrumbsection">
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li *ngFor="let crumb of breadcrumbs; index as i"
+                class="breadcrumb-item breadcrumbs.length === i+1 ? active : ''" aria-current="page"
+                (click)="onCrumbClick(crumb)">
+                <span *ngIf="breadcrumbs.length !== i+1"><a href="javascript:void(0)">{{ crumb.name }}</a></span>
+                <span *ngIf="breadcrumbs.length === i+1">{{ crumb.name }}</span>
+              </li>
+            </ol>
+          </nav>
+        </section>
+      </div>
       <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
         <div class="card">
           <div class="body">
-            <div class="row margin-2">
-              <div class="col-md-3">
-                <label class="form-label">{{'SEARCH_DOCUMENT_BY_NAME_OR_DESCRIPTION' | translate}}</label>
-                <input class="form-control" placeholder="{{'SEARCH_DOCUMENT_BY_NAME_OR_DESCRIPTION' | translate}}"
-                  type="text" #input>
-              </div>
-              <div class="col-md-3">
-                <label class="form-label">{{'SEARCH_DOCUMENT_BY_META_TAGS' | translate}}</label>
-                <input class="form-control" placeholder="{{'SEARCH_DOCUMENT_BY_META_TAGS' | translate}}" #metatag>
-              </div>
-              <div class="col-md-3">
-                <label class="form-label">{{'SELECT_CATEGORY' | translate}}</label>
-                <mat-select class="form-select" placeholder="{{'SELECT_CATEGORY' | translate}}"
-                  (selectionChange)="onCategoryChange($event)">
-                  <mat-option [value]="">-- {{'NONE' | translate}} --</mat-option>
-                  <mat-option *ngFor="let category of allCategories" [value]="category.id">
-                    <div class="country-item" [ngStyle]="{'margin-left.px': category.deafLevel* 20}">
-                      <div *ngIf="!category.parentId">
-                        <b> {{category.name}}</b>
-                      </div>
-                      <div *ngIf="category.parentId">
-                        {{category.name}}
-                      </div>
-                    </div>
-                  </mat-option>
-                </mat-select>
-              </div>
-              <div class="col-md-3">
-                <label class="form-label">{{'CREATED_DATE' | translate}}</label>
-                <input [max]="max" class="form-control" placeholder="{{'CREATED_DATE' | translate}}"
-                  [formControl]="createdDate" [owlDateTimeTrigger]="date1" [owlDateTime]="date1">
-                <owl-date-time #date1 [pickerType]="'calendar'"></owl-date-time>
-              </div>
-            </div>
             <div class="row">
               <div class="col-sm-4 m-2" *ngIf="selection.hasValue()">
                 <button mat-raised-button color="primary" *hasClaim="'ALL_DOCUMENTS_SHARE_DOCUMENT'"
