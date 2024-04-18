@@ -278,7 +278,7 @@ class DocumentController extends Controller
             return response()->json($newArray,200);
 
         }else{
-            return $pathArray;
+            return response()->json(['name'=>'home','path' => 'home'],200);
         }
 
     }

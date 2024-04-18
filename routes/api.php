@@ -47,7 +47,7 @@ Route::post('/companyProfile', [CompanyProfileController::class, 'updateCompanyP
 
 Route::middleware(['auth'])->group(function () {
 
-    Route::post('document/path', [DocumentController::class, 'folderPath']);
+    Route::get('document/path', [DocumentController::class, 'folderPath']);
     Route::post('document/rename-folder/{id}', [DocumentController::class, 'renameFolder']);
     Route::post('document/folder/delete/{id}', [DocumentController::class, 'deleteFolder']);
     Route::post('auth/refresh', [AuthController::class, 'refresh']);
