@@ -141,20 +141,22 @@ class DocumentController extends Controller
                         return folderId($filePath,$folder->id,$i);
                     }
                 }else{
-                    $createFolder = DocumentFolder::create([
-                        'name' => $filePath[$i],
-                        'parent_id'=> $folderId,
-                    ]);
-                    if (strpos($filePath[$i + 1], '.')) {
-                        return $createFolder->id;
-                    } else {
-                        $i++;
-                        return folderId($filePath,$createFolder->id,$i);
+                    if (isset($filePath[$i])) {
+                        $createFolder = DocumentFolder::create([
+                            'name' => $filePath[$i],
+                            'parent_id'=> $folderId,
+                        ]);
+                        if (strpos($filePath[$i + 1], '.')) {
+                            return $createFolder->id;
+                        } else {
+                            $i++;
+                            return folderId($filePath,$createFolder->id,$i);
+                        }
                     }
                 }
             }
 
-            if (isset($request->id)) {jjj
+            if (isset($request->id)) {
                 $request['folder_id'] = folderId($filePath,$request->id,$i);
             }else{
                 $request['folder_id'] = folderId($filePath,null,$i);
