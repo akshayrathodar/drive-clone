@@ -154,7 +154,7 @@ class DocumentController extends Controller
                 }
             }
 
-            if (isset($request->id)) {
+            if (isset($request->id)) {jjj
                 $request['folder_id'] = folderId($filePath,$request->id,$i);
             }else{
                 $request['folder_id'] = folderId($filePath,null,$i);
