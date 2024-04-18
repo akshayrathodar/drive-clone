@@ -116,14 +116,6 @@ class DocumentController extends Controller
     public function saveDocument(Request $request)
     {
 
-        $validator = Validator::make($request->all(), [
-            'name'       => ['required'],
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->messages(), 409);
-        }
-
         if (isset($request->type) && $request->type == "folder") {
 
             $request['categoryId'] = "ecf8300c-f027-4cfa-98ab-bcb6c705f476";
@@ -133,7 +125,7 @@ class DocumentController extends Controller
             $request['documentRolePermissions'] = "[]";
             $request['documentUserPermissions'] = "[]";
 
-            $realPath = $request->path_0;
+            $realPath = $request->path;
             $filePath = explode("/",$realPath);
             $request['name'] = end($filePath);
 
@@ -163,34 +155,22 @@ class DocumentController extends Controller
             }
 
             if (isset($request->id)) {
-                $allFolder = DocumentFolder::where('parent_id',null)->get();
-
-                foreach ($allFolder as $key => $value) {
-                    if ($value->name == $request->name) {
-                        return Response()->json(["error"=>"Document Folder Already Exist"],500);
-                    }
-                }
-
                 $request['folder_id'] = folderId($filePath,$request->id,$i);
-
             }else{
-                $allFolder = DocumentFolder::where('parent_id',null)->get();
-
-                foreach ($allFolder as $key => $value) {
-                    if ($value->name == $request->name) {
-                        return Response()->json(["error"=>"Document Folder Already Exist"],500);
-                    }
-                }
-
                 $request['folder_id'] = folderId($filePath,null,$i);
             }
 
+            $checkFile = Documents::where('folder_id',$request['folder_id'])->where('name',$request['name'])->first();
+
+            if (isset($checkFile)) {
+                return response()->json(['error'=>'File already exists'],500);
+            }
 
             array_pop($filePath);
             $drivePath = implode("/",$filePath)."/".Uuid::uuid4().$request['name'];
 
             $fileMetadata = new DriveFile(array('name' => $drivePath));
-            $content = file_get_contents($request->file('files_0'));
+            $content = file_get_contents($request->file('files'));
             $file = $this->service->files->create($fileMetadata, array(
                 'data' => $content,
                 'mimeType' => $request->file('files_0')->getClientMimeType(),
@@ -202,6 +182,14 @@ class DocumentController extends Controller
             return $this->documentRepository->saveDocument($request, $path);
 
         }else{
+            $validator = Validator::make($request->all(), [
+                'name'       => ['required'],
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json($validator->messages(), 409);
+            }
+
             $filepath = Uuid::uuid4().$request->name;
 
             $fileMetadata = new DriveFile(array('name' => $filepath));
