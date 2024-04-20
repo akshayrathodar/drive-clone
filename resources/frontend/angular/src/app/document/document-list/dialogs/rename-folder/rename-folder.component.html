@@ -1,0 +1,11 @@
+<h2 mat-dialog-title>Action</h2>
+<mat-dialog-content>
+  <mat-form-field>
+    <mat-label>Rename Folder</mat-label>
+    <input matInput [(ngModel)]="data.folder">
+  </mat-form-field>
+</mat-dialog-content>
+<mat-dialog-actions>
+  <button mat-button (click)="onNoClick()">No Thanks</button>
+  <button mat-button [mat-dialog-close]="data.folder" cdkFocusInitial>Confirm</button>
+</mat-dialog-actions>

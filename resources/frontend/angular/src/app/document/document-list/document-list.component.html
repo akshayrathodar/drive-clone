@@ -162,15 +162,34 @@
 
             <div class="row">
               <div *ngFor="let document of data" class="col-lg-3 col-md-3 col-sm-6">
-                <div class="file" (click)="onElementClick(document)">
-                  <i *ngIf="document.type !== 'folder'" class="fa fa-file iconsvg"></i>
-                  <i *ngIf="document.type === 'folder'" class="fa fa-folder iconsvg"></i>
-                  <span class="filename">{{ document.name }}</span>
+                <div class="file">
+                  <div (click)="onElementClick(document)">
+                    <i *ngIf="document.type !== 'folder'" class="fa fa-file iconsvg"></i>
+                    <i *ngIf="document.type === 'folder'" class="fa fa-folder iconsvg"></i>
+                    <span class="filename">{{ document.name }}</span>
+                  </div>
                   <div class="tripleicon" *ngIf="document.type != 'folder'">
                     <button mat-icon-button [matMenuTriggerFor]="menu" aria-label="Action">
                       <mat-icon>more_vert</mat-icon>
                     </button>
                   </div>
+                  <div class="tripleicon" *ngIf="document.type != 'file'">
+                    <button mat-icon-button [matMenuTriggerFor]="foldermenu" aria-label="Action">
+                      <mat-icon>more_vert</mat-icon>
+                    </button>
+                  </div>
+
+                  <mat-menu #foldermenu="matMenu">
+                    <button class="btn btn-light btn-sm" mat-menu-item (click)="onRenameFolderClick(document)" type="button">
+                      <mat-icon>edit</mat-icon>
+                      {{'Rename Folder' | translate}}
+                    </button>
+                    <button class="btn btn-light btn-sm" mat-menu-item (click)="onDeleteFolder(document)" type="button">
+                      <mat-icon>delete</mat-icon>
+                      {{'Delete Folder' | translate}}
+                    </button>
+                  </mat-menu>
+
                   <mat-menu #menu="matMenu">
                     <button class="btn btn-light btn-sm" mat-menu-item (click)="onDocumentView(document)" type="button">
                       <mat-icon>visibility</mat-icon>
@@ -229,6 +248,10 @@
     </div>
   </div>
 </section>
+<div class="folderprogresscontainer" *ngIf="folderprocessing">
+  <span>{{currentUploadedFiles}} of {{totalFiles}} Files are Uploaded</span>
+  <mat-progress-bar mode="determinate" color="primary" [value]="totalProgress"></mat-progress-bar>
+</div>
 <input style="display: none;" type="file" #folderupld webkitdirectory multiple (change)="uploadFolder($event)" />
 <!-- <div class="new-upload-file-btn" (click)="file.click()">
   <i class="far fa-file plus-icon"></i>

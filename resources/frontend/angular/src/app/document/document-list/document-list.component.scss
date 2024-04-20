@@ -8,6 +8,7 @@
   background: #f0f3fb;
   font-size: 1rem;
   overflow: hidden;
+  position: relative;
 }
 
 .filename {
@@ -26,8 +27,8 @@
 }
 
 .tripleicon {
-  position: relative;
-  right: -10px;
+  position: absolute;
+  right: 0px;
 }
 
 .new-create-folder-btn {
@@ -73,4 +74,19 @@
   font-size: 1.1rem !important;
   padding: 8px;
   border-radius: 10px;
+}
+
+.folderprogresscontainer {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  height: 50px;
+  width: 300px;
+  border-radius: 10px;
+  background-color: #f0f3fb;
+  color: #555555;
+  display: flex;
+  font-size: 1.1rem;
+  padding: 10px 14px;
+  flex-direction: column;
 }

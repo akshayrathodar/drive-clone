@@ -44,6 +44,7 @@ import { FormControl } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { P } from '@angular/cdk/keycodes';
+import { RenameFolderComponent } from './dialogs/rename-folder/rename-folder.component';
 // import { ManageFolderComponent } from 'src/app/folder/manage-folder/manage-folder.component';
 
 @Component({
@@ -82,6 +83,10 @@ export class DocumentListComponent
   selection = new SelectionModel<DocumentInfo>(true, []);
   max = new Date();
   breadcrumbs = [];
+  totalFiles = 0;
+  currentUploadedFiles = 0;
+  folderprocessing = false;
+  totalProgress = 0;
 
   constructor(
     private documentService: DocumentService,
@@ -456,7 +461,6 @@ export class DocumentListComponent
   }
 
   uploadFolder(event) {
-    debugger;
     if (event.target.files.length == 0) {
       console.log("No file selected!");
       return
@@ -466,7 +470,7 @@ export class DocumentListComponent
     let file: File = event.target.files;
     let foldername = file[0].webkitRelativePath.split("/")[0];
     let path = [];
-    
+    this.folderprocessing = true;
     Object.keys(file).forEach((key) => {
       const payload = new FormData();
       if (this.currentId) {
@@ -476,14 +480,21 @@ export class DocumentListComponent
       payload.append("files", file[key]);
       payload.append("path", file[key]['webkitRelativePath']);
 
+      this.currentUploadedFiles = 0;
+      this.totalFiles = Object.keys(file).length;
       this.documentService.uploadFolder(payload).subscribe((data: any) => {
-        if (data?.success) {
-          this.toastrService.success(data?.success);
+        this.currentUploadedFiles++;
+        this.totalProgress = (this.currentUploadedFiles * 100) / this.totalFiles;
+        if (this.currentUploadedFiles == this.totalFiles) {
+          this.toastrService.success("Folder Uploaded Successfully.");
           this.dataSource.loadDocuments(this.documentResource, this.currentId);
-          // this.refereshDirectory();
+          this.folderprocessing = false;
+          this.currentUploadedFiles = 0;
+          this.totalFiles = 0;
+          this.totalProgress = 0;
         }
       })
-  
+
     })
 
   }
@@ -514,6 +525,33 @@ export class DocumentListComponent
     //   this.driveService.setBreadCrumb(currentCrumb.filter((item, i) => !(i > selectedcrumbindex)));
     //   this.breadcrumbs = currentCrumb.filter((item, i) => !(i > selectedcrumbindex));
     // }
+  }
+
+  onRenameFolderClick(document: any) {
+    const dialogRef = this.dialog.open(RenameFolderComponent, {
+      data: {folder: document.name},
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      console.log(result);
+      if (result && result !== document.name) {
+        let payload = {folderId: document.id,foldername: result};
+        this.documentService.renameFolder(payload).subscribe((data: any) => {
+          this.toastrService.success(data.success);           
+          this.dataSource.loadDocuments(this.documentResource, this.currentId);
+        })
+      } else {
+        this.toastrService.error(`No changes in Folder Name ${document.name}.`); 
+      }
+      //this.animal = result;
+    });
+  }
+
+  onDeleteFolder(document: any) {
+    this.documentService.deleteFolder({folderId: document.id}).subscribe((data: any) => {
+      this.toastrService.success(data.success);           
+      this.dataSource.loadDocuments(this.documentResource, this.currentId);
+    })
   }
 
 }
