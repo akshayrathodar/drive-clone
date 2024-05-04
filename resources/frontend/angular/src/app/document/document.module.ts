@@ -35,6 +35,8 @@ import {
   OwlDateTimeModule,
   OwlNativeDateTimeModule,
 } from 'ng-pick-datetime-ex';
+import { MatCardModule } from '@angular/material/card';
+import { RenameFolderComponent } from './document-list/dialogs/rename-folder/rename-folder.component';
 
 @NgModule({
   declarations: [
@@ -47,6 +49,7 @@ import {
     DocumentCommentComponent,
     DocumentUploadNewVersionComponent,
     DocumentVersionHistoryComponent,
+    RenameFolderComponent,
   ],
   imports: [
     CommonModule,
@@ -73,6 +76,7 @@ import {
     MatRadioModule,
     OwlDateTimeModule,
     OwlNativeDateTimeModule,
+    MatCardModule
   ],
 })
 export class DocumentModule {}

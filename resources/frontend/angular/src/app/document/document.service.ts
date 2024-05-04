@@ -144,4 +144,23 @@ export class DocumentService {
       .post<DocumentInfo>(url, payload)
       .pipe(catchError(this.commonHttpErrorService.handleError));
   }
+
+  renameFolder(payload): Observable<DocumentInfo | CommonError> {
+    const url = 'document/rename-folder/' + payload.folderId;
+    const formData = new FormData();
+    formData.append('name', payload.foldername);
+
+    return this.httpClient
+      .post<DocumentInfo>(url, formData)
+      .pipe(catchError(this.commonHttpErrorService.handleError));
+  }
+
+  deleteFolder(payload): Observable<DocumentInfo | CommonError> {
+    const url = 'document/folder/delete/' + payload.folderId;
+
+    return this.httpClient
+      .post<DocumentInfo>(url, {})
+      .pipe(catchError(this.commonHttpErrorService.handleError));
+  }
+
 }
