@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Ramsey\Uuid\Uuid;
 use Google\Service\Drive\DriveFile;
+use Pion\Laravel\ChunkUpload\Receiver\FileReceiver;
+use Pion\Laravel\ChunkUpload\Handler\HandlerFactory;
 
 class DocumentController extends Controller
 {
@@ -169,19 +171,8 @@ class DocumentController extends Controller
             }
 
             array_pop($filePath);
+
             $drivePath = implode("/",$filePath)."/".Uuid::uuid4().$request['name'];
-
-            $fileMetadata = new DriveFile(array('name' => $drivePath));
-            $content = file_get_contents($request->file('files'));
-            $file = $this->service->files->create($fileMetadata, array(
-                'data' => $content,
-                'mimeType' => $request->file('files')->getClientMimeType(),
-                'uploadType' => 'multipart',
-                'fields' => 'id'));
-
-            $path = $file->id;
-
-            return $this->documentRepository->saveDocument($request, $path);
 
         }else{
             $validator = Validator::make($request->all(), [
@@ -192,20 +183,31 @@ class DocumentController extends Controller
                 return response()->json($validator->messages(), 409);
             }
 
-            $filepath = Uuid::uuid4().$request->name;
+            $drivePath = Uuid::uuid4().$request->name;
+        }
 
-            $fileMetadata = new DriveFile(array('name' => $filepath));
+        $receiver = new FileReceiver('uploadFile', $request, HandlerFactory::classFromRequest($request));
+
+        $fileReceived = $receiver->receive(); // receive file
+
+        if ($fileReceived->isFinished()) { // file uploading is complete / all chunks are uploaded
+            $file = $fileReceived->getFile(); // get file
+
+            $fileMetadata = new DriveFile(array('name' => $drivePath));
             $content = file_get_contents($request->file('uploadFile'));
-            $file = $this->service->files->create($fileMetadata, array(
+            $driveFile = $this->service->files->create($fileMetadata, array(
                 'data' => $content,
                 'mimeType' => $request->file('uploadFile')->getClientMimeType(),
                 'uploadType' => 'multipart',
                 'fields' => 'id'));
 
-            $path = $file->id;
+            $path = $driveFile->id;
 
-            return $this->documentRepository->saveDocument($request, $path);
+            unlink($file->getPathname());
+
         }
+
+        return $this->documentRepository->saveDocument($request, $path);
 
     }
 
