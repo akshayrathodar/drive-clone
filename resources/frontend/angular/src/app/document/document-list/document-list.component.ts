@@ -45,6 +45,7 @@ import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { P } from '@angular/cdk/keycodes';
 import { RenameFolderComponent } from './dialogs/rename-folder/rename-folder.component';
+import { environment } from '@environments/environment';
 // import { ManageFolderComponent } from 'src/app/folder/manage-folder/manage-folder.component';
 
 @Component({
@@ -87,6 +88,7 @@ export class DocumentListComponent
   currentUploadedFiles = 0;
   folderprocessing = false;
   totalProgress = 0;
+  @ViewChild('folderupld') btnupload: ElementRef;
 
   constructor(
     private documentService: DocumentService,
@@ -123,6 +125,55 @@ export class DocumentListComponent
     this.getCategories();
     this.getBreadCrumbs();
     this.getResourceParameter();
+    this.injectScript('https://cdn.jsdelivr.net/npm/resumablejs@1.1.0/resumable.min.js')
+		.then(() => { console.log('Script loaded!'); this.setupResumable(); })
+		.catch(error => { console.log(error); });
+  }
+
+  setupResumable() {
+    const token = localStorage.getItem('bearerToken');
+    const baseUrl = environment.apiUrl;
+
+    const resumable = new Resumable({
+      target: baseUrl + '/api/document',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+      },
+      chunkSize: 10*1024*1024, // default is 1*1024*1024, this should be less than your maximum limit in php.ini
+      testChunks: false,
+      throttleProgressCallbacks: 1
+    },);
+    resumable.assignBrowse(this.btnupload.nativeElement);
+
+    resumable.on('fileAdded', function (file) { // trigger when file picked
+        resumable.upload() // to actually start uploading.
+    });
+
+    resumable.on('fileProgress', function (file) { // trigger when file progress update
+    });
+
+    resumable.on('fileSuccess', function (file, response) { // trigger when file upload complete
+        response = JSON.parse(response)
+    });
+
+    resumable.on('fileError', function (file, response) { // trigger when there is any error
+        console.log(file, response);
+        alert('file uploading error.')
+    });
+
+    console.log(resumable); // IT WORKS!
+  }
+
+  injectScript(src) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = src;
+      script.addEventListener('load', resolve);
+      script.addEventListener('error', () => reject('Error loading script.'));
+      script.addEventListener('abort', () => reject('Script loading aborted.'));
+      document.head.appendChild(script);
+    });
   }
 
   getBreadCrumbs() {
@@ -461,6 +512,8 @@ export class DocumentListComponent
   }
 
   uploadFolder(event) {
+    // WILL REMOVE AFTER CHUNK UPLOAD
+    return;
     if (event.target.files.length == 0) {
       console.log("No file selected!");
       return
@@ -537,11 +590,11 @@ export class DocumentListComponent
       if (result && result !== document.name) {
         let payload = {folderId: document.id,foldername: result};
         this.documentService.renameFolder(payload).subscribe((data: any) => {
-          this.toastrService.success(data.success);           
+          this.toastrService.success(data.success);
           this.dataSource.loadDocuments(this.documentResource, this.currentId);
         })
       } else {
-        this.toastrService.error(`No changes in Folder Name ${document.name}.`); 
+        this.toastrService.error(`No changes in Folder Name ${document.name}.`);
       }
       //this.animal = result;
     });
@@ -549,7 +602,7 @@ export class DocumentListComponent
 
   onDeleteFolder(document: any) {
     this.documentService.deleteFolder({folderId: document.id}).subscribe((data: any) => {
-      this.toastrService.success(data.success);           
+      this.toastrService.success(data.success);
       this.dataSource.loadDocuments(this.documentResource, this.currentId);
     })
   }
