@@ -46,6 +46,21 @@
   border-radius: 15px;
 }
 
+.new-upload-file-btn{
+  position: fixed;
+  bottom: 20px;
+  right: 15px;
+  font-size: 1.5rem;
+  height: 50px;
+  width: 50px;
+  display: flex;
+  justify-content: center;
+  vertical-align: middle;
+  background-color: #495584;
+  color: #f0f3fb;
+  border-radius: 15px;
+}
+
 .plus-icon {
   margin: auto;
 }

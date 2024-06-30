@@ -118,86 +118,98 @@ class DocumentController extends Controller
     public function saveDocument(Request $request)
     {
 
-        if (isset($request->type) && $request->type == "folder") {
-
-            $request['categoryId'] = "ecf8300c-f027-4cfa-98ab-bcb6c705f476";
-            $request['categoryName'] = "";
-            $request['description'] = "";
-            $request['documentMetaDatas'] = "[]";
-            $request['documentRolePermissions'] = "[]";
-            $request['documentUserPermissions'] = "[]";
-
-            $realPath = $request->path;
-            $filePath = explode("/",$realPath);
-            $request['name'] = end($filePath);
-
-            $i = 0;
-
-            function folderId($filePath,$folderId,$i){
-                $folder = DocumentFolder::where('parent_id',$folderId)->where('name',$filePath[$i])->first();
-                if ($folder) {
-                    if (strpos($filePath[$i + 1], '.')) {
-                        return $folder->id;
-                    }else {
-                        $i++;
-                        return folderId($filePath,$folder->id,$i);
-                    }
-                }else{
-                    if (isset($filePath[$i])) {
-                        $createFolder = DocumentFolder::create([
-                            'name' => $filePath[$i],
-                            'parent_id'=> $folderId,
-                        ]);
-                        if (strpos($filePath[$i + 1], '.')) {
-                            return $createFolder->id;
-                        } else {
-                            $i++;
-                            return folderId($filePath,$createFolder->id,$i);
-                        }
-                    }
-                }
-            }
-
-            if (isset($request->id)) {
-                $request['folder_id'] = folderId($filePath,$request->id,$i);
-            }else{
-                $request['folder_id'] = folderId($filePath,null,$i);
-            }
-
-            $checkFile = Documents::where('folder_id',$request['folder_id'])->where('name',$request['name'])->first();
-
-            if (isset($checkFile)) {
-                return response()->json(['error'=>'File already exists'],500);
-            }
-
-            array_pop($filePath);
-
-            $drivePath = implode("/",$filePath)."/".Uuid::uuid4().$request['name'];
-
+        if (isset($request->type)) {
+            $receiver = new FileReceiver('file', $request, HandlerFactory::classFromRequest($request));
         }else{
-            $validator = Validator::make($request->all(), [
-                'name'       => ['required'],
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json($validator->messages(), 409);
-            }
-
-            $drivePath = Uuid::uuid4().$request->name;
+            $receiver = new FileReceiver('uploadFile', $request, HandlerFactory::classFromRequest($request));
         }
-
-        $receiver = new FileReceiver('uploadFile', $request, HandlerFactory::classFromRequest($request));
 
         $fileReceived = $receiver->receive(); // receive file
 
         if ($fileReceived->isFinished()) { // file uploading is complete / all chunks are uploaded
+
+            if (isset($request->type)) {
+
+                $request['path'] = $request->resumableRelativePath;
+                $request['categoryId'] = "ecf8300c-f027-4cfa-98ab-bcb6c705f476";
+                $request['categoryName'] = "";
+                $request['description'] = "";
+                $request['documentMetaDatas'] = "[]";
+                $request['documentRolePermissions'] = "[]";
+                $request['documentUserPermissions'] = "[]";
+
+                $realPath = $request['path'];
+                $filePath = explode("/",$realPath);
+                $request['name'] = end($filePath);
+
+                $i = 0;
+
+                function folderId($filePath,$folderId,$i){
+                    $folder = DocumentFolder::where('parent_id',$folderId)->where('name',$filePath[$i])->first();
+                    if (isset($folder)) {
+                        if (strpos($filePath[$i + 1], '.')) {
+                            return $folder->id;
+                        }else {
+                            $i++;
+                            return folderId($filePath,$folder->id,$i);
+                        }
+                    }else{
+                        if (isset($filePath[$i])) {
+                            $createFolder = DocumentFolder::create([
+                                'name' => $filePath[$i],
+                                'parent_id'=> $folderId,
+                            ]);
+                            if (strpos($filePath[$i + 1], '.')) {
+                                return $createFolder->id;
+                            } else {
+                                $i++;
+                                return folderId($filePath,$createFolder->id,$i);
+                            }
+                        }
+                    }
+                }
+
+                if ($request->type == "folder") {
+                    if (isset($request->id)) {
+                        $request['folder_id'] = folderId($filePath,$request->id,$i);
+                    }else{
+                        $request['folder_id'] = folderId($filePath,null,$i);
+                    }
+                }else{
+                    $request['folder_id'] = isset($request->id) ? $request->id : null;
+                }
+
+                $checkFile = Documents::where('folder_id',$request['folder_id'])->where('name',$request['name'])->first();
+
+                if (isset($checkFile)) {
+                    return response()->json(['error'=>'File already exists'],500);
+                }
+
+                array_pop($filePath);
+
+                $drivePath = implode("/",$filePath)."/".Uuid::uuid4().$request['name'];
+
+
+            }else{
+                $validator = Validator::make($request->all(), [
+                    'name'       => ['required'],
+                ]);
+
+                if ($validator->fails()) {
+                    return response()->json($validator->messages(), 409);
+                }
+
+                $drivePath = Uuid::uuid4().$request->name;
+
+            }
+
             $file = $fileReceived->getFile(); // get file
 
             $fileMetadata = new DriveFile(array('name' => $drivePath));
-            $content = file_get_contents($request->file('uploadFile'));
+            $content = file_get_contents($file);
             $driveFile = $this->service->files->create($fileMetadata, array(
                 'data' => $content,
-                'mimeType' => $request->file('uploadFile')->getClientMimeType(),
+                'mimeType' => $file->getClientMimeType(),
                 'uploadType' => 'multipart',
                 'fields' => 'id'));
 
@@ -205,9 +217,8 @@ class DocumentController extends Controller
 
             unlink($file->getPathname());
 
+            return $this->documentRepository->saveDocument($request, $path);
         }
-
-        return $this->documentRepository->saveDocument($request, $path);
 
     }
 

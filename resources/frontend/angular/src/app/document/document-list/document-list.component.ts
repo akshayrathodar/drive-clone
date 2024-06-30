@@ -88,7 +88,8 @@ export class DocumentListComponent
   currentUploadedFiles = 0;
   folderprocessing = false;
   totalProgress = 0;
-  @ViewChild('folderupld') btnupload: ElementRef;
+  @ViewChild('file') btnupload: ElementRef;
+  @ViewChild('folderupld') folderUpload: ElementRef;
 
   constructor(
     private documentService: DocumentService,
@@ -135,33 +136,113 @@ export class DocumentListComponent
     const baseUrl = environment.apiUrl;
 
     const resumable = new Resumable({
-      target: baseUrl + '/api/document',
+      target: baseUrl + 'api/document',
       headers: {
         'Authorization': 'Bearer ' + token,
       },
-      chunkSize: 10*1024*1024, // default is 1*1024*1024, this should be less than your maximum limit in php.ini
+      query: {
+        type : "file",
+        id : this.currentId ? this.currentId : ""
+      },
+      // chunkSize: 10*1024*1024, // default is 1*1024*1024, this should be less than your maximum limit in php.ini
       testChunks: false,
+      simulataneousUploads : 100,
       throttleProgressCallbacks: 1
     },);
+
     resumable.assignBrowse(this.btnupload.nativeElement);
 
-    resumable.on('fileAdded', function (file) { // trigger when file picked
-        resumable.upload() // to actually start uploading.
+    let totalFile = [];
+
+    resumable.on('fileAdded', (e) => { // trigger when file picked
+      totalFile.push(e);
+
+      this.folderprocessing = true;
+      this.currentUploadedFiles = 0;
+      this.totalFiles = totalFile.length;
+
+      resumable.upload() // to actually start uploading.
     });
 
-    resumable.on('fileProgress', function (file) { // trigger when file progress update
-    });
+    resumable.on('fileSuccess', () => {
+      this.currentUploadedFiles ++;
 
-    resumable.on('fileSuccess', function (file, response) { // trigger when file upload complete
-        response = JSON.parse(response)
+      this.totalProgress = (this.currentUploadedFiles*100)/this.totalFiles;
+
+      if (this.currentUploadedFiles == this.totalFiles) {
+        this.toastrService.success("File Uploaded Successfully.");
+        this.dataSource.loadDocuments(this.documentResource, this.currentId);
+        this.folderprocessing = false;
+        this.currentUploadedFiles = 0;
+        this.totalFiles = 0;
+        this.totalProgress = 0;
+        totalFile = [];
+      }
     });
 
     resumable.on('fileError', function (file, response) { // trigger when there is any error
-        console.log(file, response);
-        alert('file uploading error.')
+        this.toastrService.error("File Uploading Error.");
+        this.folderprocessing = false;
+        this.totalFiles = 0;
+        this.totalProgress = 0;
+        totalFile = [];
     });
 
-    console.log(resumable); // IT WORKS!
+    const resumableFolder = new Resumable({
+        target: baseUrl + 'api/document',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+        },
+        query: {
+          type : "folder",
+          id : this.currentId ? this.currentId : ""
+        },
+        // chunkSize: 10*1024*1024, // default is 1*1024*1024, this should be less than your maximum limit in php.ini
+        testChunks: false,
+        simulataneousUploads : 100,
+        throttleProgressCallbacks: 1
+    },);
+
+    resumableFolder.assignBrowse(this.folderUpload.nativeElement,true);
+
+    resumableFolder.files.length = 0;
+
+    let totalFolderFiles = [];
+
+    resumableFolder.on('fileAdded',(e) =>  { // trigger when file picked
+        totalFolderFiles.push(e);
+
+        this.folderprocessing = true;
+        this.currentUploadedFiles = 0;
+        this.totalFiles = totalFolderFiles.length;
+
+        resumableFolder.upload() // to actually start uploading.
+    });
+
+    resumableFolder.on('fileSuccess', () => { // trigger when file upload complete
+        this.currentUploadedFiles ++;
+
+        this.totalProgress = (this.currentUploadedFiles*100)/this.totalFiles;
+
+        if (this.currentUploadedFiles == this.totalFiles) {
+          this.toastrService.success("Folder Uploaded Successfully.");
+          this.dataSource.loadDocuments(this.documentResource, this.currentId);
+          this.folderprocessing = false;
+          this.currentUploadedFiles = 0;
+          this.totalFiles = 0;
+          this.totalProgress = 0;
+          totalFolderFiles = [];
+        }
+    });
+
+    resumableFolder.on('fileError', () => { // trigger when there is any error
+        this.toastrService.error("Folder Uploading Error.");
+        this.folderprocessing = false;
+        this.totalFiles = 0;
+        this.totalProgress = 0;
+        totalFolderFiles = [];
+    });
+
   }
 
   injectScript(src) {
@@ -513,7 +594,7 @@ export class DocumentListComponent
 
   uploadFolder(event) {
     // WILL REMOVE AFTER CHUNK UPLOAD
-    return;
+    // return;
     if (event.target.files.length == 0) {
       console.log("No file selected!");
       return
@@ -524,6 +605,9 @@ export class DocumentListComponent
     let foldername = file[0].webkitRelativePath.split("/")[0];
     let path = [];
     this.folderprocessing = true;
+    const baseUrl = environment.apiUrl;
+    const token = localStorage.getItem('bearerToken');
+
     Object.keys(file).forEach((key) => {
       const payload = new FormData();
       if (this.currentId) {
@@ -533,20 +617,20 @@ export class DocumentListComponent
       payload.append("files", file[key]);
       payload.append("path", file[key]['webkitRelativePath']);
 
-      this.currentUploadedFiles = 0;
-      this.totalFiles = Object.keys(file).length;
-      this.documentService.uploadFolder(payload).subscribe((data: any) => {
-        this.currentUploadedFiles++;
-        this.totalProgress = (this.currentUploadedFiles * 100) / this.totalFiles;
-        if (this.currentUploadedFiles == this.totalFiles) {
-          this.toastrService.success("Folder Uploaded Successfully.");
-          this.dataSource.loadDocuments(this.documentResource, this.currentId);
-          this.folderprocessing = false;
-          this.currentUploadedFiles = 0;
-          this.totalFiles = 0;
-          this.totalProgress = 0;
-        }
-      })
+      // this.currentUploadedFiles = 0;
+      // this.totalFiles = Object.keys(file).length;
+      // this.documentService.uploadFolder(payload).subscribe((data: any) => {
+      //   this.currentUploadedFiles++;
+      //   this.totalProgress = (this.currentUploadedFiles * 100) / this.totalFiles;
+      //   if (this.currentUploadedFiles == this.totalFiles) {
+      //     this.toastrService.success("Folder Uploaded Successfully.");
+      //     this.dataSource.loadDocuments(this.documentResource, this.currentId);
+      //     this.folderprocessing = false;
+      //     this.currentUploadedFiles = 0;
+      //     this.totalFiles = 0;
+      //     this.totalProgress = 0;
+      //   }
+      // })
 
     })
 

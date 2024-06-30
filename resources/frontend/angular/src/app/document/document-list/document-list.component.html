@@ -252,12 +252,13 @@
   <span>{{currentUploadedFiles}} of {{totalFiles}} Files are Uploaded</span>
   <mat-progress-bar mode="determinate" color="primary" [value]="totalProgress"></mat-progress-bar>
 </div>
-<input style="display: none;" type="file" #folderupld webkitdirectory multiple (change)="uploadFolder($event)" />
-<!-- <div class="new-upload-file-btn" (click)="file.click()">
-  <i class="far fa-file plus-icon"></i>
-</div> -->
+<input style="display: none;" type="file" #folderupld webkitdirectory directory multiple />
+<input style="display: none;" type="file" #file webkitdirectory multiple />
 <div class="new-create-folder-btn" (click)="folderupld.click()">
   <i class="fas fa-folder-plus plus-icon"></i>
+</div>
+<div class="new-upload-file-btn" (click)="file.click()">
+  <i class="far fa-file plus-icon"></i>
 </div>
 <div class="loading-shade" *ngIf="dataSource.loading$ | async">
   <mat-spinner></mat-spinner>
