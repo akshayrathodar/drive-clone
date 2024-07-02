@@ -180,8 +180,8 @@ export class DocumentListComponent
       }
     });
 
-    resumable.on('fileError', () => { // trigger when there is any error
-        this.toastrService.error("File Uploading Error.");
+    resumable.on('fileError', (file,response) => { // trigger when there is any error
+        this.toastrService.error(JSON.parse(response).error);
         this.folderprocessing = false;
         this.totalFiles = 0;
         this.totalProgress = 0;
@@ -235,8 +235,8 @@ export class DocumentListComponent
         }
     });
 
-    resumableFolder.on('fileError', () => { // trigger when there is any error
-        this.toastrService.error("Folder Uploading Error.");
+    resumableFolder.on('fileError', (file,response) => { // trigger when there is any error
+        this.toastrService.error(JSON.parse(response).error);
         this.folderprocessing = false;
         this.totalFiles = 0;
         this.totalProgress = 0;
