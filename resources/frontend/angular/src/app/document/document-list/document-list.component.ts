@@ -180,7 +180,9 @@ export class DocumentListComponent
       }
     });
 
-    resumable.on('fileError', function (file, response) { // trigger when there is any error
+    resumable.on('fileError', () => { // trigger when there is any error
+        console.log("file eroor");
+
         this.toastrService.error("File Uploading Error.");
         this.folderprocessing = false;
         this.totalFiles = 0;
@@ -406,7 +408,7 @@ export class DocumentListComponent
                   'DOCUMENT_DELETED_SUCCESSFULLY'
                 )
               );
-              this.dataSource.loadDocuments(this.documentResource);
+              this.dataSource.loadDocuments(this.documentResource, this.currentId);
             });
         }
       });
