@@ -181,8 +181,6 @@ export class DocumentListComponent
     });
 
     resumable.on('fileError', () => { // trigger when there is any error
-        console.log("file eroor");
-
         this.toastrService.error("File Uploading Error.");
         this.folderprocessing = false;
         this.totalFiles = 0;
