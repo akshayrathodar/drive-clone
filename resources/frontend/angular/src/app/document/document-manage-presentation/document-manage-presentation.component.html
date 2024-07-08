@@ -19,7 +19,11 @@
               <div class="row">
                 <div class="col-md-4">
                   <label class="form-label">{{'DOCUMENT_UPLOAD' | translate}}</label>
-                  <input class="form-control" #file (change)="upload(file.files)" type="file">
+                  <div class="upload-btn" #uploadFile>
+                    <button> Choose File </button>
+                    <span id="selectedFileName"> No file chosen </span>
+                    <input class="form-control" #file (change)="upload(file.files)" type="file" style="display: none;">
+                  </div>
                   <div *ngIf="documentForm.get('url').touched && documentForm.get('url')?.errors">
                     <div class="text-danger" *ngIf="documentForm.get('url').errors?.['required']">
                       {{'DOCUMENT_IS_REQUIRED' | translate}}

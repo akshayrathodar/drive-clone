@@ -24,5 +24,6 @@ export interface DocumentInfo {
   documentUserPermissions?: DocumentUserPermission[];
   fileData?: any;
   folder_id?: any;
+  resumable?: any;
   isAssignUser?: any;
 }

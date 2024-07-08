@@ -59,9 +59,32 @@ export class DocumentService {
     if (document.folder_id) {
       formData.append('folder_id', document.folder_id);
     }
-    return this.httpClient
-      .post<DocumentInfo>(url, formData)
-      .pipe(catchError(this.commonHttpErrorService.handleError));
+
+    if (document.resumable) {
+
+      const newFormData = {} as any;
+
+      newFormData.name = document.name;
+      newFormData.categoryId = document.categoryId;
+      newFormData.categoryName = document.categoryName;
+      newFormData.description = document.description;
+      newFormData.folder_id = document.folder_id;
+      newFormData.documentMetaDatas = JSON.stringify(document.documentMetaDatas);
+      newFormData.documentRolePermissions = JSON.stringify(document.documentRolePermissions ?? [])
+      newFormData.documentUserPermissions = JSON.stringify(document.documentUserPermissions ?? []);
+      document.resumable.opts.query = newFormData;
+
+      document.resumable.upload();
+
+      return document.resumable;
+    }else{
+
+      return this.httpClient
+        .post<DocumentInfo>(url, formData)
+        .pipe(catchError(this.commonHttpErrorService.handleError));
+
+    }
+
   }
 
   deleteDocument(id: string): Observable<void | CommonError> {
@@ -109,11 +132,22 @@ export class DocumentService {
   saveNewVersionDocument(document): Observable<DocumentInfo | CommonError> {
     const url = `documentversion`;
     const formData = new FormData();
-    formData.append('uploadFile', document.fileData);
-    formData.append('documentId', document.documentId);
-    return this.httpClient
-      .post<DocumentInfo>(url, formData)
-      .pipe(catchError(this.commonHttpErrorService.handleError));
+
+    if (document.resumable) {
+
+      document.resumable.opts.query = document;
+      document.resumable.upload();
+
+      return document.resumable;
+
+    }else{
+      formData.append('uploadFile', document.fileData);
+      formData.append('documentId', document.documentId);
+      return this.httpClient
+        .post<DocumentInfo>(url, formData)
+        .pipe(catchError(this.commonHttpErrorService.handleError));
+    }
+
   }
 
   getDocumentVersion(id: string) {
@@ -139,7 +173,7 @@ export class DocumentService {
 
   uploadFolder(payload): Observable<DocumentInfo | CommonError> {
     const url = 'document';
-  
+
     return this.httpClient
       .post<DocumentInfo>(url, payload)
       .pipe(catchError(this.commonHttpErrorService.handleError));

@@ -54,7 +54,7 @@ class DocumentRepository extends BaseRepository implements DocumentRepositoryInt
         if (isset($folderId)) {
             $query->where('folder_id',$folderId);
         }else{
-            $query->where('folder_id',null);
+            $query->where('folder_id',0);
         }
 
         $orderByArray =  explode(' ', $attributes->orderBy);
@@ -160,7 +160,7 @@ class DocumentRepository extends BaseRepository implements DocumentRepositoryInt
             $model = $this->model->newInstance($request);
             $model->url = $path;
             $model->type = "file";
-            $model->folder_id = isset($request->folder_id) ? $request->folder_id : null;
+            $model->folder_id = isset($request->folder_id) ? $request->folder_id : 0;
             $model->categoryId = $request->categoryId;
             $model->name = $request->name;
             $model->description = $request->description;

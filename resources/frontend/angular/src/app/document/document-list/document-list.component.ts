@@ -278,7 +278,7 @@ export class DocumentListComponent
           this.documentResource.pageSize = this.paginator.pageSize;
           this.documentResource.orderBy =
             this.sort.active + ' ' + this.sort.direction;
-          this.dataSource.loadDocuments(this.documentResource);
+          this.dataSource.loadDocuments(this.documentResource,this.currentId);
           this.selection.clear();
         })
       )
@@ -292,7 +292,7 @@ export class DocumentListComponent
           this.paginator.pageIndex = 0;
           this.documentResource.skip = 0;
           this.documentResource.name = this.input.nativeElement.value;
-          this.dataSource.loadDocuments(this.documentResource);
+          this.dataSource.loadDocuments(this.documentResource,this.currentId);
           this.selection.clear();
         })
       )
@@ -306,7 +306,7 @@ export class DocumentListComponent
           this.paginator.pageIndex = 0;
           this.documentResource.skip = 0;
           this.documentResource.metaTags = this.metatag.nativeElement.value;
-          this.dataSource.loadDocuments(this.documentResource);
+          this.dataSource.loadDocuments(this.documentResource,this.currentId);
         })
       )
       .subscribe();
@@ -323,7 +323,7 @@ export class DocumentListComponent
             this.documentResource.createDate = null;
           }
           this.documentResource.skip = 0;
-          this.dataSource.loadDocuments(this.documentResource);
+          this.dataSource.loadDocuments(this.documentResource,this.currentId);
         })
       )
       .subscribe();
@@ -349,7 +349,7 @@ export class DocumentListComponent
       this.documentResource.categoryId = '';
     }
     this.documentResource.skip = 0;
-    this.dataSource.loadDocuments(this.documentResource);
+    this.dataSource.loadDocuments(this.documentResource,this.currentId);
   }
 
   getCategories(): void {
@@ -434,6 +434,7 @@ export class DocumentListComponent
   editDocument(documentInfo: DocumentInfo) {
     const documentCategories: DocumentCategory = {
       document: documentInfo,
+      folder_id: this.currentId,
       categories: this.categories,
     };
     const dialogRef = this.dialog.open(DocumentEditComponent, {
@@ -443,7 +444,7 @@ export class DocumentListComponent
 
     this.sub$.sink = dialogRef.afterClosed().subscribe((result: string) => {
       if (result === 'loaded') {
-        this.dataSource.loadDocuments(this.documentResource);
+        this.dataSource.loadDocuments(this.documentResource,this.currentId);
       }
     });
   }
@@ -457,7 +458,7 @@ export class DocumentListComponent
 
     this.sub$.sink = dialogRef.afterClosed().subscribe((result: string) => {
       if (result === 'loaded') {
-        this.dataSource.loadDocuments(this.documentResource);
+        this.dataSource.loadDocuments(this.documentResource,this.currentId);
       }
     });
   }
@@ -489,7 +490,7 @@ export class DocumentListComponent
 
     this.sub$.sink = dialogRef.afterClosed().subscribe((result: boolean) => {
       if (result) {
-        this.dataSource.loadDocuments(this.documentResource);
+        this.dataSource.loadDocuments(this.documentResource,this.currentId);
       }
     });
   }
@@ -586,7 +587,7 @@ export class DocumentListComponent
         });
         dialogRef.afterClosed().subscribe((isRestore: boolean) => {
           if (isRestore) {
-            this.dataSource.loadDocuments(this.documentResource);
+            this.dataSource.loadDocuments(this.documentResource,this.currentId);
           }
         });
       });

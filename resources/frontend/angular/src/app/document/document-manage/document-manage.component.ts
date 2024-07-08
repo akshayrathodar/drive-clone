@@ -44,16 +44,36 @@ export class DocumentManageComponent extends BaseComponent {
     if (this.folderId) {
       document.folder_id = this.folderId;
     }
-    this.sub$.sink = this.documentService.addDocument(document).subscribe(
-      (documentInfo: DocumentInfo) => {
+
+    if (document.resumable) {
+      const resumable = this.documentService.addDocument(document);
+
+      document.resumable.on('fileSuccess', (file,response) => {
         this.isLoading = false;
-        this.addDocumentTrail(documentInfo);
+
+        const responseId = response.replace( /"/g, "" );
+        this.addDocumentTrail(responseId);
+
         this.toastrService.success(
           this.translationService.getValue('DOCUMENT_SAVE_SUCCESSFULLY')
         );
-      },
-      () => (this.isLoading = false)
-    );
+      })
+
+    }else{
+
+      this.sub$.sink = this.documentService.addDocument(document).subscribe(
+        (documentInfo: DocumentInfo) => {
+          this.isLoading = false;
+          this.addDocumentTrail(documentInfo);
+          this.toastrService.success(
+            this.translationService.getValue('DOCUMENT_SAVE_SUCCESSFULLY')
+          );
+        },
+        () => (this.isLoading = false)
+      );
+
+    }
+
   }
   addDocumentTrail(id) {
     const objDocumentAuditTrail: DocumentAuditTrail = {

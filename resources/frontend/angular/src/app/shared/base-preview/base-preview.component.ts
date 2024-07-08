@@ -74,7 +74,7 @@ export class BasePreviewComponent extends BaseComponent implements OnInit {
   downloadDocument(documentView: DocumentView) {
     this.sub$.sink = this.commonService.downloadDocument(this.currentDoc.documentId, documentView.isVersion).subscribe(
       (event) => {
-        if (event.type === HttpEventType.Response) { 
+        if (event.type === HttpEventType.Response) {
           this.addDocumentTrail(documentView.isVersion ? documentView.id : documentView.documentId, DocumentOperation.Download.toString());
           this.downloadFile(event, documentView);
         }

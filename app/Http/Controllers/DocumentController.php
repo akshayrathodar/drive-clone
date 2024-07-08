@@ -118,11 +118,11 @@ class DocumentController extends Controller
     public function saveDocument(Request $request)
     {
 
-        if (isset($request->type)) {
+        // if (isset($request->type)) {
+        //     $receiver = new FileReceiver('file', $request, HandlerFactory::classFromRequest($request));
+        // }else{
             $receiver = new FileReceiver('file', $request, HandlerFactory::classFromRequest($request));
-        }else{
-            $receiver = new FileReceiver('uploadFile', $request, HandlerFactory::classFromRequest($request));
-        }
+        // }
 
         $fileReceived = $receiver->receive(); // receive file
 
@@ -200,7 +200,6 @@ class DocumentController extends Controller
                 }
 
                 $drivePath = Uuid::uuid4().$request->name;
-
             }
 
             $file = $fileReceived->getFile(); // get file
@@ -224,7 +223,11 @@ class DocumentController extends Controller
 
     public function updateDocument(Request $request, $id)
     {
-        $model = Documents::where([['name', '=', $request->name], ['id', '<>', $id]])->first();
+        if (isset($request->folder_id)) {
+            $model = Documents::where([['name', '=', $request->name],['folder_id', '=', $request->folder_id], ['id', '<>', $id]])->first();
+        }else{
+            $model = Documents::where([['name', '=', $request->name], ['id', '<>', $id]])->first();
+        }
 
         if (!is_null($model)) {
             return response()->json([

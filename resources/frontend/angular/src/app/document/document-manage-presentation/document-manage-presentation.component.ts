@@ -7,6 +7,8 @@ import {
   Input,
   OnInit,
   Output,
+  ElementRef ,
+  ViewChild
 } from '@angular/core';
 import {
   UntypedFormGroup,
@@ -27,6 +29,10 @@ import { CategoryService } from '@core/services/category.service';
 import { CommonService } from '@core/services/common.service';
 import { environment } from '@environments/environment';
 import { BaseComponent } from 'src/app/base.component';
+import { ActivatedRoute, Router } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSort } from '@angular/material/sort';
+import { MatPaginator } from '@angular/material/paginator';
 
 @Component({
   selector: 'app-document-manage-presentation',
@@ -53,11 +59,18 @@ export class DocumentManagePresentationComponent
   fileInfo: FileInfo;
   isFileUpload = false;
   fileData: any;
+  folderId = null;
+  resumable = null;
   users: User[];
   roles: Role[];
   selectedRoles: Role[] = [];
   selectedUsers: User[] = [];
   minDate: Date;
+  @ViewChild(MatPaginator) paginator: MatPaginator;
+  @ViewChild(MatSort) sort: MatSort;
+  @ViewChild('input') input: ElementRef;
+  @ViewChild('metatag') metatag: ElementRef;
+  @ViewChild('uploadFile') btnupload: ElementRef;
   get documentMetaTagsArray(): FormArray {
     return <FormArray>this.documentForm.get('documentMetaTags');
   }
@@ -67,10 +80,17 @@ export class DocumentManagePresentationComponent
     private httpClient: HttpClient,
     private cd: ChangeDetectorRef,
     private categoryService: CategoryService,
-    private commonService: CommonService
+    private commonService: CommonService,
+    private router: Router,
+    private route: ActivatedRoute,
   ) {
     super();
     this.minDate = new Date();
+    this.route.params.subscribe((param: any) => {
+      if (param.id) {
+        this.folderId = param.id;
+      }
+    })
   }
 
   ngOnInit(): void {
@@ -79,6 +99,43 @@ export class DocumentManagePresentationComponent
     this.documentMetaTagsArray.push(this.buildDocumentMetaTag());
     this.getUsers();
     this.getRoles();
+    this.injectScript('https://cdn.jsdelivr.net/npm/resumablejs@1.1.0/resumable.min.js')
+		.then(() => { console.log('Script loaded!'); this.setupResumable(); })
+		.catch(error => { console.log(error); });
+  }
+
+  injectScript(src) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = src;
+      script.addEventListener('load', resolve);
+      script.addEventListener('error', () => reject('Error loading script.'));
+      script.addEventListener('abort', () => reject('Script loading aborted.'));
+      document.head.appendChild(script);
+    });
+  }
+
+  setupResumable() {
+    const token = localStorage.getItem('bearerToken');
+    const baseUrl = environment.apiUrl;
+
+    this.resumable = new Resumable({
+      target: baseUrl + 'api/document',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+      },
+      // chunkSize: 10*1024*1024, // default is 1*1024*1024, this should be less than your maximum limit in php.ini
+      testChunks: false,
+      simulataneousUploads : 100,
+      throttleProgressCallbacks: 1
+    },);
+
+    this.resumable.assignBrowse(this.btnupload.nativeElement);
+
+    this.resumable.on('fileAdded', (e) => {
+      this.upload([e.file]);
+    })
   }
 
   getUsers() {
@@ -232,6 +289,7 @@ export class DocumentManagePresentationComponent
       documentMetaDatas: [...documentMetaTags],
       fileData: this.fileData,
       extension: this.extension,
+      resumable : this.resumable,
     };
     if (this.selectedRoles.length > 0) {
       document.documentRolePermissions = this.selectedRoles.map((role) => {
@@ -260,6 +318,7 @@ export class DocumentManagePresentationComponent
         );
       });
     }
+
     return document;
   }
 
@@ -280,7 +339,9 @@ export class DocumentManagePresentationComponent
   }
 
   upload(files) {
+
     if (files.length === 0) return;
+
     this.extension = files[0].name.split('.').pop();
     if (!this.fileExtesionValidation(this.extension)) {
       this.fileUploadExtensionValidation('');
@@ -293,6 +354,9 @@ export class DocumentManagePresentationComponent
     this.fileData = files[0];
     this.documentForm.get('url').setValue(files[0].name);
     this.documentForm.get('name').setValue(files[0].name);
+
+    document.getElementById("selectedFileName").innerHTML = files[0].name;
+
   }
 
   roleTimeBoundChange(event: MatCheckboxChange) {

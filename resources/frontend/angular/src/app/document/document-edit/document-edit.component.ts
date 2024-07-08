@@ -17,6 +17,7 @@ import { TranslationService } from '@core/services/translation.service';
 import { ToastrService } from 'ngx-toastr';
 import { BaseComponent } from 'src/app/base.component';
 import { DocumentService } from '../document.service';
+import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({
   selector: 'app-document-edit',
@@ -27,6 +28,7 @@ export class DocumentEditComponent extends BaseComponent implements OnInit {
   document: DocumentInfo;
   documentForm: UntypedFormGroup;
   extension = '';
+  currentId = null;
   @Input() categories: Category[];
   @Input() documentInfo: DocumentInfo;
   documentSource: string;
@@ -42,9 +44,12 @@ export class DocumentEditComponent extends BaseComponent implements OnInit {
     private toastrService: ToastrService,
     private documentService: DocumentService,
     private commonService: CommonService,
-    private translationService: TranslationService
+    private translationService: TranslationService,
+    private route: ActivatedRoute,
+    private router: Router
   ) {
     super();
+
   }
 
   ngOnInit(): void {
@@ -119,6 +124,7 @@ export class DocumentEditComponent extends BaseComponent implements OnInit {
       description: this.documentForm.get('description').value,
       name: this.documentForm.get('name').value,
       documentMetaDatas: [...documentMetaTags],
+      folder_id: this.data.folder_id,
     };
     return document;
   }

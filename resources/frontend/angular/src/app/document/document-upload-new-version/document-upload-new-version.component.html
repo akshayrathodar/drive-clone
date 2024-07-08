@@ -9,7 +9,12 @@
   <form [formGroup]="documentForm">
     <div class="col-md-12">
       <label>{{'DOCUMENT_UPLOAD' | translate}}</label>
-      <input class="form-control" #file (change)="upload(file.files)" type="file">
+      <div class="upload-btn">
+        <button #file> Choose File </button>
+        <span id="selectedFileName"> No file chosen </span>
+        <!-- <input class="form-control" #file (change)="upload(file.files)" type="file" style="display: none;"> -->
+      </div>
+      <!-- <input class="form-control" #file (change)="upload(file.files)" type="file"> -->
       <div class="text-danger"
         *ngIf="documentForm.get('extension').touched  && documentForm.get('extension').hasError('required')">
         {{'DOCUMENT_TYPE_IS_NOT_ALLOW' | translate}}
