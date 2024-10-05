@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Repositories\Contracts\DocumentRepositoryInterface;
 use App\Models\Documents;
 use App\Models\DocumentVersions;
+use App\Models\GoogleTokens;
 use App\Repositories\Contracts\DocumentMetaDataRepositoryInterface;
 use App\Repositories\Contracts\DocumentTokenRepositoryInterface;
 use App\Repositories\Contracts\UserNotificationRepositoryInterface;
@@ -44,7 +45,17 @@ class DocumentController extends Controller
         $this->userNotificationRepository = $userNotificationRepository;
         $this->documenTokenRepository = $documenTokenRepository;
 
-        $this->refreshToken = config('filesystems.disks.google.refreshToken');
+        $tokens = GoogleTokens::get();
+
+        if (!empty($tokens) && isset($tokens)) {
+           $newRefreshToken = GoogleTokens::where('name','drive_refresh_token')->first();
+           if (!isset($newRefreshToken)) {
+                $newRefreshToken = GoogleTokens::create([
+                     'name' => 'drive_refresh_token',
+                     'value' => env('GOOGLE_DRIVE_REFRESH_TOKEN')
+                 ]);
+           }
+        }
 
         $this->client = new \Google_Client();
         $this->client->setClientId(env('GOOGLE_DRIVE_CLIENT_ID'));
@@ -53,43 +64,39 @@ class DocumentController extends Controller
         $this->client->setAccessType('offline');
         $this->client->setApprovalPrompt("force");
 
-        if ($this->client->isAccessTokenExpired()) {
-            // Try refreshing with the refresh token
-            $refreshToken = $this->client->getRefreshToken();
-            if ($refreshToken) {
-                $this->client->fetchAccessTokenWithRefreshToken($refreshToken);
-                $this->refreshToken = $this->client->getAccessToken();
-                // $this->storeAccessToken($this->client->getAccessToken()); // Optionally store the new access token
-            } else {
-                $authUrl = $this->client->createAuthUrl();
-                return redirect($authUrl);
-            }
-        }
+        // if ($this->client->isAccessTokenExpired()) {
+        //     // Try refreshing with the refresh token
+        //     $refreshToken = $this->client->getRefreshToken();
+        //     if ($refreshToken) {
+        //         $this->client->fetchAccessTokenWithRefreshToken($refreshToken);
+        //         $this->refreshToken = $this->client->getAccessToken();
+        //     } else {
 
-        $this->client->refreshToken($this->refreshToken);
+        //     }
+        // }
+        $this->refreshAccessToken($newRefreshToken->value);
         $this->service = new \Google\Service\Drive($this->client);
     }
 
-    public function handleGoogleCallback(Request $request)
+    public function refreshAccessToken($refreshToken)
     {
-        // Get the authorization code from the request
-        $code = $request->get('code');
+        $response = Http::withHeaders(['Content-Type' => 'application/json'])
+            ->post('https://www.googleapis.com/oauth2/v4/token', [
+                'client_id' => env('GOOGLE_DRIVE_CLIENT_ID'),     // Make sure to set this in your .env file
+                'client_secret' => env('GOOGLE_DRIVE_CLIENT_SECRET'), // Set this in your .env file
+                'refresh_token' => $refreshToken,
+                'grant_type' => 'refresh_token',
+            ]);
 
-        // Exchange the authorization code for an access token and refresh token
-        $token = $this->client->fetchAccessTokenWithAuthCode($code);
-
-        // Store the refresh token for future use
-        if (isset($token['refresh_token'])) {
-            $this->refreshToken = $token['refresh_token'];
-            $this->client->refreshToken($this->refreshToken);
-            // Optionally store this in your database or config
+        if ($response->successful()) {
+            $data = $response->json();
+            GoogleTokens::where('name','drive_refresh_token')->update(['value' => $data['access_token']]);
+            $this->client->refreshToken($data['access_token']);
+            return $data['access_token'];
+        } else {
+            // Handle error, you can log or return as necessary
+            return response()->json(['error' => 'Failed to refresh access token.'], 500);
         }
-
-        // Now you can set the access token in the client
-        $this->client->setAccessToken($token);
-
-        // Return a response or redirect the user as necessary
-        return response()->json(['message' => 'New refresh token generated successfully.']);
     }
 
     public function getDocuments(Request $request)
