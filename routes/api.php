@@ -44,6 +44,7 @@ Route::controller(AuthController::class)->group(function () {
 Route::get('document/{id}/officeviewer', [DocumentController::class, 'officeviewer']);
 Route::get('/companyProfile', [CompanyProfileController::class, 'getCompanyProfile']);
 Route::post('/companyProfile', [CompanyProfileController::class, 'updateCompanyProfile']);
+Route::get('/google-drive-callback', [DocumentController::class, 'handleGoogleCallback']);
 
 Route::middleware(['auth'])->group(function () {
 

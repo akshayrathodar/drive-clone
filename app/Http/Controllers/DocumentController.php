@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Ramsey\Uuid\Uuid;
 use Google\Service\Drive\DriveFile;
+use Illuminate\Support\Facades\Http;
 use Pion\Laravel\ChunkUpload\Receiver\FileReceiver;
 use Pion\Laravel\ChunkUpload\Handler\HandlerFactory;
 
@@ -30,6 +31,7 @@ class DocumentController extends Controller
     protected $client;
     protected $folder_id;
     protected $service;
+    protected $refreshToken;
 
     public function __construct(
         DocumentRepositoryInterface $documentRepository,
@@ -42,14 +44,52 @@ class DocumentController extends Controller
         $this->userNotificationRepository = $userNotificationRepository;
         $this->documenTokenRepository = $documenTokenRepository;
 
+        $this->refreshToken = config('filesystems.disks.google.refreshToken');
+
         $this->client = new \Google_Client();
         $this->client->setClientId(env('GOOGLE_DRIVE_CLIENT_ID'));
         $this->client->setClientSecret(env('GOOGLE_DRIVE_CLIENT_SECRET'));
-        $this->client->refreshToken(env('GOOGLE_DRIVE_REFRESH_TOKEN'));
+        $this->client->setRedirectUri(url('api/google-drive-callback'));
         $this->client->setAccessType('offline');
         $this->client->setApprovalPrompt("force");
 
+        if ($this->client->isAccessTokenExpired()) {
+            // Try refreshing with the refresh token
+            $refreshToken = $this->client->getRefreshToken();
+            if ($refreshToken) {
+                $this->client->fetchAccessTokenWithRefreshToken($refreshToken);
+                $this->refreshToken = $this->client->getAccessToken();
+                // $this->storeAccessToken($this->client->getAccessToken()); // Optionally store the new access token
+            } else {
+                $authUrl = $this->client->createAuthUrl();
+                return redirect($authUrl);
+            }
+        }
+
+        $this->client->refreshToken($this->refreshToken);
         $this->service = new \Google\Service\Drive($this->client);
+    }
+
+    public function handleGoogleCallback(Request $request)
+    {
+        // Get the authorization code from the request
+        $code = $request->get('code');
+
+        // Exchange the authorization code for an access token and refresh token
+        $token = $this->client->fetchAccessTokenWithAuthCode($code);
+
+        // Store the refresh token for future use
+        if (isset($token['refresh_token'])) {
+            $this->refreshToken = $token['refresh_token'];
+            $this->client->refreshToken($this->refreshToken);
+            // Optionally store this in your database or config
+        }
+
+        // Now you can set the access token in the client
+        $this->client->setAccessToken($token);
+
+        // Return a response or redirect the user as necessary
+        return response()->json(['message' => 'New refresh token generated successfully.']);
     }
 
     public function getDocuments(Request $request)
@@ -206,6 +246,7 @@ class DocumentController extends Controller
 
             $fileMetadata = new DriveFile(array('name' => $drivePath));
             $content = file_get_contents($file);
+            // dd($this->refreshToken);
             $driveFile = $this->service->files->create($fileMetadata, array(
                 'data' => $content,
                 'mimeType' => $file->getClientMimeType(),
