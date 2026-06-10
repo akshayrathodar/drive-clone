@@ -74,30 +74,43 @@ class DocumentController extends Controller
 
         //     }
         // }
-        $this->refreshAccessToken($newRefreshToken->value);
+        // Exchange the stored refresh token for an access token and set it on the client
+        try {
+            $token = $this->client->fetchAccessTokenWithRefreshToken($newRefreshToken->value);
+            // dd(env('GOOGLE_DRIVE_CLIENT_ID'));
+            if (isset($token['access_token'])) {
+                $this->client->setAccessToken($token);
+            } else {
+                // fallback: set the refresh token only (less reliable)
+                $this->client->refreshToken($newRefreshToken->value);
+            }
+        } catch (\Exception $e) {
+            // swallow - service will still be created but calls will fail until valid token
+        }
+
         $this->service = new \Google\Service\Drive($this->client);
     }
 
-    public function refreshAccessToken($refreshToken)
-    {
-        $response = Http::withHeaders(['Content-Type' => 'application/json'])
-            ->post('https://www.googleapis.com/oauth2/v4/token', [
-                'client_id' => env('GOOGLE_DRIVE_CLIENT_ID'),     // Make sure to set this in your .env file
-                'client_secret' => env('GOOGLE_DRIVE_CLIENT_SECRET'), // Set this in your .env file
-                'refresh_token' => $refreshToken,
-                'grant_type' => 'refresh_token',
-            ]);
+    // public function refreshAccessToken($refreshToken)
+    // {
+    //     $response = Http::withHeaders(['Content-Type' => 'application/json'])
+    //         ->post('https://www.googleapis.com/oauth2/v4/token', [
+    //             'client_id' => env('GOOGLE_DRIVE_CLIENT_ID'),     // Make sure to set this in your .env file
+    //             'client_secret' => env('GOOGLE_DRIVE_CLIENT_SECRET'), // Set this in your .env file
+    //             'refresh_token' => $refreshToken,
+    //             'grant_type' => 'refresh_token',
+    //         ]);
 
-        if ($response->successful()) {
-            $data = $response->json();
-            GoogleTokens::where('name','drive_refresh_token')->update(['value' => $data['access_token']]);
-            $this->client->refreshToken($data['access_token']);
-            return $data['access_token'];
-        } else {
-            // Handle error, you can log or return as necessary
-            return response()->json(['error' => 'Failed to refresh access token.'], 500);
-        }
-    }
+    //     if ($response->successful()) {
+    //         $data = $response->json();
+    //         GoogleTokens::where('name','drive_refresh_token')->update(['value' => $data['access_token']]);
+    //         $this->client->refreshToken($data['access_token']);
+    //         return $data['access_token'];
+    //     } else {
+    //         // Handle error, you can log or return as necessary
+    //         return response()->json(['error' => 'Failed to refresh access token.'], 500);
+    //     }
+    // }
 
     public function getDocuments(Request $request)
     {
